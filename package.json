@@ -12,7 +12,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "tsx src/lib/db/seed.ts"
+    "db:seed": "tsx src/lib/db/seed.ts",
+    "commit": "cz",
+    "prepare": "husky"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
@@ -34,16 +36,27 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
+    "@commitlint/cz-commitlint": "^21.2.2",
     "@types/node": "^20.17.16",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "autoprefixer": "^10.4.20",
+    "commitizen": "^4.3.2",
     "drizzle-kit": "^0.30.4",
     "eslint": "^9.19.0",
     "eslint-config-next": "^15.5.25",
+    "husky": "^9.1.7",
+    "inquirer": "^9.3.8",
     "postcss": "^8.5.1",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
+  },
+  "config": {
+    "commitizen": {
+      "path": "@commitlint/cz-commitlint"
+    }
   }
 }
