@@ -18,8 +18,8 @@ export default async function RootLayout({
   const auth = await getAuth();
 
   return (
-    <html lang="en-GB">
-      <body className="min-h-screen antialiased">
+    <html lang="en-GB" className="h-full">
+      <body className="flex h-full flex-col antialiased">
         <SiteHeader
           user={
             auth
@@ -32,7 +32,9 @@ export default async function RootLayout({
               : null
           }
         />
-        <main className="container py-6">{children}</main>
+        <main className="container flex flex-1 flex-col overflow-y-auto py-6">
+          {children}
+        </main>
       </body>
     </html>
   );

@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -23,34 +22,18 @@ import {
 import { formatCost, formatDate, formatRating, formatType } from "@/lib/format";
 import type { ReviewRow } from "@/lib/types";
 
-const ALL = "all";
-
 type SortKey = "cafe" | "rating" | "cost" | "createdAt";
 
-export function ListView({ reviews }: { reviews: ReviewRow[] }) {
-  const [search, setSearch] = useState("");
-  const [type, setType] = useState<string>(ALL);
-  const [worthIt, setWorthIt] = useState<string>(ALL);
-  const [minRating, setMinRating] = useState<string>(ALL);
-  const [maxCost, setMaxCost] = useState<string>("");
+interface Props {
+  reviews: ReviewRow[];
+  totalCount: number;
+}
+
+export function ListView({ reviews, totalCount }: Props) {
   const [sort, setSort] = useState<SortKey>("createdAt");
 
-  const filtered = useMemo(() => {
-    const min = minRating === ALL ? 0 : Number(minRating);
-    const max = maxCost.trim() === "" ? Infinity : Number(maxCost);
-
-    const rows = reviews.filter((r) => {
-      if (search && !r.cafeName.toLowerCase().includes(search.toLowerCase())) {
-        return false;
-      }
-      if (type !== ALL && r.type !== type) return false;
-      if (worthIt !== ALL && r.worthIt !== worthIt) return false;
-      if (Number(r.rating) < min) return false;
-      if (!Number.isNaN(max) && Number(r.cost) > max) return false;
-      return true;
-    });
-
-    return rows.sort((a, b) => {
+  const sorted = useMemo(() => {
+    return [...reviews].sort((a, b) => {
       switch (sort) {
         case "cafe":
           return a.cafeName.localeCompare(b.cafeName);
@@ -62,86 +45,14 @@ export function ListView({ reviews }: { reviews: ReviewRow[] }) {
           return b.createdAt.localeCompare(a.createdAt);
       }
     });
-  }, [reviews, search, type, worthIt, minRating, maxCost, sort]);
+  }, [reviews, sort]);
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <div className="col-span-2 space-y-1 sm:col-span-1">
-          <Label htmlFor="search">Cafe</Label>
-          <Input
-            id="search"
-            placeholder="Search…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-1">
-          <Label>Type</Label>
-          <Select value={type} onValueChange={setType}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>All</SelectItem>
-              <SelectItem value="barista">Barista</SelectItem>
-              <SelectItem value="machine">Machine</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1">
-          <Label>Worth it</Label>
-          <Select value={worthIt} onValueChange={setWorthIt}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>All</SelectItem>
-              <SelectItem value="yes">Yes</SelectItem>
-              <SelectItem value="no">No</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1">
-          <Label>Min rating</Label>
-          <Select value={minRating} onValueChange={setMinRating}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>Any</SelectItem>
-              <SelectItem value="1">1+</SelectItem>
-              <SelectItem value="2">2+</SelectItem>
-              <SelectItem value="3">3+</SelectItem>
-              <SelectItem value="4">4+</SelectItem>
-              <SelectItem value="5">5</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor="maxCost">Max cost (£)</Label>
-          <Input
-            id="maxCost"
-            type="number"
-            inputMode="decimal"
-            step="0.10"
-            min="0"
-            placeholder="Any"
-            value={maxCost}
-            onChange={(e) => setMaxCost(e.target.value)}
-          />
-        </div>
-      </div>
-
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          {filtered.length} of {reviews.length} review
-          {reviews.length === 1 ? "" : "s"}
+          {sorted.length} of {totalCount} review
+          {totalCount === 1 ? "" : "s"}
         </p>
         <div className="flex items-center gap-2">
           <Label className="text-xs text-muted-foreground">Sort</Label>
@@ -174,7 +85,7 @@ export function ListView({ reviews }: { reviews: ReviewRow[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {sorted.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={7}
@@ -184,7 +95,7 @@ export function ListView({ reviews }: { reviews: ReviewRow[] }) {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((r) => (
+              sorted.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="font-medium">{r.cafeName}</TableCell>
                   <TableCell>

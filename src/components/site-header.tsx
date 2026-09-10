@@ -15,7 +15,10 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
     <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
       <div className="container flex h-14 items-center justify-between gap-2">
         <Link href="/" className="flex items-center gap-2 font-semibold">
-          <Coffee className="h-5 w-5 text-primary" />
+          <img
+            src="/cat-latte-icon-120x120.png"
+            className="h-10 w-10 text-primary"
+          />
           <span className="hidden sm:inline">Teignmouth Flat Whites</span>
           <span className="sm:hidden">Flat Whites</span>
         </Link>
