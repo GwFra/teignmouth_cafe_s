@@ -13,6 +13,9 @@ const WORTH_IT = ["yes", "no"] as const;
 export interface ReviewInput {
   cafeId: string | null;
   cafeName: string | null;
+  cafeAddress: string | null;
+  cafeLat: number | null;
+  cafeLng: number | null;
   type: (typeof REVIEW_TYPES)[number];
   worthIt: (typeof WORTH_IT)[number];
   rating: string; // "0".."5"
@@ -34,6 +37,24 @@ export function parseReviewInput(body: unknown): Result<ReviewInput> {
   const cafeName = asString(b.cafeName) || null;
   if (!cafeId && !cafeName) {
     return { ok: false, error: "Provide either cafeId or cafeName." };
+  }
+
+  const cafeAddress = asString(b.cafeAddress) || null;
+  const cafeLatRaw = b.cafeLat;
+  const cafeLngRaw = b.cafeLng;
+  const cafeLat =
+    cafeLatRaw === null || cafeLatRaw === undefined || cafeLatRaw === ""
+      ? null
+      : Number(cafeLatRaw);
+  const cafeLng =
+    cafeLngRaw === null || cafeLngRaw === undefined || cafeLngRaw === ""
+      ? null
+      : Number(cafeLngRaw);
+  if (cafeLat !== null && (Number.isNaN(cafeLat) || cafeLat < -90 || cafeLat > 90)) {
+    return { ok: false, error: "cafeLat must be between -90 and 90." };
+  }
+  if (cafeLng !== null && (Number.isNaN(cafeLng) || cafeLng < -180 || cafeLng > 180)) {
+    return { ok: false, error: "cafeLng must be between -180 and 180." };
   }
 
   const type = asString(b.type);
@@ -63,6 +84,9 @@ export function parseReviewInput(body: unknown): Result<ReviewInput> {
     data: {
       cafeId,
       cafeName,
+      cafeAddress,
+      cafeLat,
+      cafeLng,
       type: type as ReviewInput["type"],
       worthIt: worthIt as ReviewInput["worthIt"],
       rating: ratingNum.toFixed(1),

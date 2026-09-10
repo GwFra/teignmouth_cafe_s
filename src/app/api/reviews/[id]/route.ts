@@ -34,7 +34,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         (
           await db
             .insert(cafes)
-            .values({ name: input.cafeName })
+            .values({
+              name: input.cafeName,
+              address: input.cafeAddress,
+              lat: input.cafeLat,
+              lng: input.cafeLng,
+            })
             .returning({ id: cafes.id })
         )[0].id;
     }

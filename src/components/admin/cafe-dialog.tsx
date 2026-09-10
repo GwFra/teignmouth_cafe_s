@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useJsApiLoader } from "@react-google-maps/api";
 
+import { PlaceAutocompleteField } from "@/components/admin/place-autocomplete-field";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiSend } from "@/lib/client";
+import { GOOGLE_MAPS_LIBRARIES, TEIGNMOUTH_BOUNDS } from "@/lib/maps-config";
 import type { CafeWithStats } from "@/lib/types";
 
 interface Props {
@@ -32,6 +35,13 @@ export function CafeDialog({ cafe, trigger, onSaved }: Props) {
   const [address, setAddress] = useState(cafe?.address ?? "");
   const [lat, setLat] = useState(cafe?.lat != null ? String(cafe.lat) : "");
   const [lng, setLng] = useState(cafe?.lng != null ? String(cafe.lng) : "");
+
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const { isLoaded: mapsLoaded } = useJsApiLoader({
+    id: "google-map-script",
+    googleMapsApiKey: apiKey ?? "",
+    libraries: GOOGLE_MAPS_LIBRARIES,
+  });
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -65,12 +75,30 @@ export function CafeDialog({ cafe, trigger, onSaved }: Props) {
         <DialogHeader>
           <DialogTitle>{cafe ? "Edit cafe" : "Add cafe"}</DialogTitle>
           <DialogDescription>
-            Coordinates place the cafe on the Google Map. Tip: right-click a spot
-            in Google Maps to copy its latitude/longitude.
+            Search Google Places to auto-fill the name, address, and
+            coordinates below, or enter them by hand. Tip: right-click a
+            spot in Google Maps to copy its latitude/longitude.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={submit} className="space-y-4">
+          {mapsLoaded && (
+            <div className="space-y-1">
+              <Label htmlFor="place-search">Search Google Places (optional)</Label>
+              <PlaceAutocompleteField
+                id="place-search"
+                placeholder="Start typing a cafe name…"
+                bounds={TEIGNMOUTH_BOUNDS}
+                onPlaceSelected={(place) => {
+                  setName(place.name ?? name);
+                  setAddress(place.address ?? address);
+                  setLat(String(place.lat));
+                  setLng(String(place.lng));
+                }}
+              />
+            </div>
+          )}
+
           <div className="space-y-1">
             <Label htmlFor="name">Name</Label>
             <Input

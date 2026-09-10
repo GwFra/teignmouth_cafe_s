@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useJsApiLoader } from "@react-google-maps/api";
 
+import { PlaceAutocompleteField } from "@/components/admin/place-autocomplete-field";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { apiSend } from "@/lib/client";
+import { GOOGLE_MAPS_LIBRARIES, TEIGNMOUTH_BOUNDS } from "@/lib/maps-config";
 import type { CafeOption, ReviewRow } from "@/lib/types";
 
 const NEW_CAFE = "__new__";
@@ -41,11 +44,21 @@ export function ReviewDialog({ cafes, review, trigger, onSaved }: Props) {
 
   const [cafeId, setCafeId] = useState<string>(review?.cafeId ?? NEW_CAFE);
   const [cafeName, setCafeName] = useState<string>("");
+  const [cafeAddress, setCafeAddress] = useState<string>("");
+  const [cafeLat, setCafeLat] = useState<string>("");
+  const [cafeLng, setCafeLng] = useState<string>("");
   const [type, setType] = useState<string>(review?.type ?? "barista");
   const [worthIt, setWorthIt] = useState<string>(review?.worthIt ?? "yes");
   const [rating, setRating] = useState<string>(review?.rating ?? "4.0");
   const [cost, setCost] = useState<string>(review?.cost ?? "3.40");
   const [notes, setNotes] = useState<string>(review?.notes ?? "");
+
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const { isLoaded: mapsLoaded } = useJsApiLoader({
+    id: "google-map-script",
+    googleMapsApiKey: apiKey ?? "",
+    libraries: GOOGLE_MAPS_LIBRARIES,
+  });
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -55,6 +68,9 @@ export function ReviewDialog({ cafes, review, trigger, onSaved }: Props) {
       const payload = {
         cafeId: cafeId === NEW_CAFE ? null : cafeId,
         cafeName: cafeId === NEW_CAFE ? cafeName : null,
+        cafeAddress: cafeId === NEW_CAFE ? cafeAddress || null : null,
+        cafeLat: cafeId === NEW_CAFE && cafeLat !== "" ? Number(cafeLat) : null,
+        cafeLng: cafeId === NEW_CAFE && cafeLng !== "" ? Number(cafeLng) : null,
         type,
         worthIt,
         rating,
@@ -103,13 +119,32 @@ export function ReviewDialog({ cafes, review, trigger, onSaved }: Props) {
               </SelectContent>
             </Select>
             {cafeId === NEW_CAFE && (
-              <Input
-                className="mt-2"
-                placeholder="New cafe name"
-                value={cafeName}
-                onChange={(e) => setCafeName(e.target.value)}
-                required
-              />
+              <div className="mt-2 space-y-2">
+                {mapsLoaded && (
+                  <PlaceAutocompleteField
+                    id="review-place-search"
+                    placeholder="Search Google Places…"
+                    bounds={TEIGNMOUTH_BOUNDS}
+                    onPlaceSelected={(place) => {
+                      setCafeName(place.name ?? cafeName);
+                      setCafeAddress(place.address ?? cafeAddress);
+                      setCafeLat(String(place.lat));
+                      setCafeLng(String(place.lng));
+                    }}
+                  />
+                )}
+                <Input
+                  placeholder="New cafe name"
+                  value={cafeName}
+                  onChange={(e) => setCafeName(e.target.value)}
+                  required
+                />
+                {cafeLat !== "" && cafeLng !== "" && (
+                  <p className="text-xs text-muted-foreground">
+                    Location captured{cafeAddress ? `: ${cafeAddress}` : ""}
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
