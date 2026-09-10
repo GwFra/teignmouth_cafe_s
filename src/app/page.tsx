@@ -11,7 +11,7 @@ export default async function HomePage() {
   ]);
 
   return (
-    <div className="space-y-6">
+    <div className="flex h-full min-h-0 flex-1 flex-col gap-6">
       <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight">
           Flat whites of Teignmouth
@@ -21,7 +21,11 @@ export default async function HomePage() {
         </p>
       </div>
 
-      <ReviewsExplorer reviews={reviews} cafes={cafes} />
+      <ReviewsExplorer
+        reviews={reviews}
+        cafes={cafes}
+        className="min-h-0 flex-1"
+      />
     </div>
   );
 }
