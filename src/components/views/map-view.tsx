@@ -5,10 +5,8 @@ import { GoogleMap, InfoWindowF, MarkerF, useJsApiLoader } from "@react-google-m
 
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCost, formatRating } from "@/lib/format";
+import { GOOGLE_MAPS_LIBRARIES, TEIGNMOUTH } from "@/lib/maps-config";
 import type { CafeWithStats } from "@/lib/types";
-
-// Teignmouth town centre.
-const TEIGNMOUTH = { lat: 50.5462, lng: -3.4966 };
 
 const containerStyle = { width: "100%", height: "70vh", minHeight: "420px" };
 
@@ -24,6 +22,7 @@ export function MapView({ cafes }: { cafes: CafeWithStats[] }) {
   const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: apiKey ?? "",
+    libraries: GOOGLE_MAPS_LIBRARIES,
   });
 
   if (!apiKey) {
