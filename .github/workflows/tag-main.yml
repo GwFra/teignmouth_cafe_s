@@ -1,0 +1,36 @@
+name: Tag Main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate next version
+        id: semver
+        uses: ietf-tools/semver-action@v1
+        with:
+          token: ${{ github.token }}
+          branch: main
+          fallbackTag: 0.0.0
+          minorList: feat
+          patchList: fix
+          noVersionBumpBehavior: current
+
+      - name: Push tag
+        if: steps.semver.outputs.bump != 'none'
+        env:
+          TAG: ${{ steps.semver.outputs.nextStrict }}
+        run: |
+          git tag "$TAG"
+          git push origin "$TAG"
