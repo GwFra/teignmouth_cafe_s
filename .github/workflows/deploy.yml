@@ -21,6 +21,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
 
     env:
       VERCEL_ENVIRONMENT: ${{ inputs.environment || 'Preview' }}
