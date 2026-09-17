@@ -23,14 +23,14 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment }}
-
     env:
       VERCEL_ENVIRONMENT: ${{ inputs.environment || 'Development' }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       GIT_TAG: ${{ inputs.tag || '0.2.0' }}
 
     steps:
       - uses: actions/checkout@v4
       - run: npm install -g vercel
-      - run: vercel pull --yes --environment=${{ env.VERCEL_ENVIRONMENT }} --token=${{ secrets.VERCEL_TOKEN }}
-      - run: vercel build ${{ env.VERCEL_ENVIRONMENT == 'Production' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
-      - run: vercel deploy --prebuilt ${{ env.VERCEL_ENVIRONMENT == 'Production' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel pull --yes --environment=${{ env.VERCEL_ENVIRONMENT }}
+      - run: vercel build ${{ env.VERCEL_ENVIRONMENT == 'Production' && '--prod' || '' }}
+      - run: vercel deploy --prebuilt ${{ env.VERCEL_ENVIRONMENT == 'Production' && '--prod' || '' }}
