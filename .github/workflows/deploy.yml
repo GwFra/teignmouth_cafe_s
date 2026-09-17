@@ -7,11 +7,11 @@ on:
       environment:
         description: "Vercel environment to deploy"
         required: true
-        default: Preview
+        default: Development
         type: choice
         options:
+          - Development
           - Production
-          - Preview
       tag:
         description: "Git tag to deploy"
         required: true
@@ -25,7 +25,7 @@ jobs:
       name: ${{ inputs.environment }}
 
     env:
-      VERCEL_ENVIRONMENT: ${{ inputs.environment || 'Preview' }}
+      VERCEL_ENVIRONMENT: ${{ inputs.environment || 'Development' }}
       GIT_TAG: ${{ inputs.tag || '0.2.0' }}
 
     steps:
