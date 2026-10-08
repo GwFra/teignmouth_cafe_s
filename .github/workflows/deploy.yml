@@ -1,36 +1,57 @@
-# .github/workflows/deploy.yml
 name: Deploy to Vercel
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      environment:
-        description: "Vercel environment to deploy"
-        required: true
-        default: Development
-        type: choice
-        options:
-          - Development
-          - Production
       tag:
-        description: "Git tag to deploy"
+        description: "Release tag to deploy"
         required: true
-        default: 0.2.0
         type: string
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment:
-      name: ${{ inputs.environment }}
+      name: Production
+      url: ${{ steps.deploy.outputs.url }}
     env:
-      VERCEL_ENVIRONMENT: ${{ inputs.environment || 'Development' }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      GIT_TAG: ${{ inputs.tag || '0.2.0' }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
     steps:
-      - uses: actions/checkout@v4
-      - run: npm install -g vercel
-      - run: vercel pull --yes --environment=${{ env.VERCEL_ENVIRONMENT }}
-      - run: vercel build ${{ env.VERCEL_ENVIRONMENT == 'Production' && '--prod' || '' }}
-      - run: vercel deploy --prebuilt ${{ env.VERCEL_ENVIRONMENT == 'Production' && '--prod' || '' }}
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy
+        id: deploy
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          URL=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN" --meta version="$TAG")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Deployed \`$TAG\` to production: $URL" >> "$GITHUB_STEP_SUMMARY"

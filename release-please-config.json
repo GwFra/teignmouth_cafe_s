@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "node",
+  "include-v-in-tag": false,
+  "bump-minor-pre-major": true,
+  "bootstrap-sha": "32de47ce7a5ec48d8d0a883987b0a26d47929081",
+  "packages": {
+    ".": {
+      "package-name": "teignmouth-flat-whites",
+      "changelog-path": "CHANGELOG.md"
+    }
+  }
+}
