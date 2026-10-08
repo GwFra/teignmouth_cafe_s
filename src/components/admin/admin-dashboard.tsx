@@ -1,10 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Coffee, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  Coffee,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 
 import { CafeDialog } from "@/components/admin/cafe-dialog";
 import { ReviewDialog } from "@/components/admin/review-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -87,7 +95,12 @@ export function AdminDashboard() {
         </Button>
       </div>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       {/* ---------------- Reviews ---------------- */}
       <TabsContent value="reviews" className="space-y-3">

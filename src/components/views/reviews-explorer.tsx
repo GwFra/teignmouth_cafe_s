@@ -81,7 +81,9 @@ export function ReviewsExplorer({ reviews, cafes, className }: Props) {
             reviewCount: stats.reviewCount,
             avgRating: stats.ratingSum / stats.reviewCount,
             avgCost: stats.costSum / stats.reviewCount,
-            worthItRate: stats.worthItYes / stats.reviewCount,
+            // Same majority rule as getCafesWithStats.
+            worthIt:
+              stats.worthItYes * 2 >= stats.reviewCount ? "yes" : "no",
           },
         ];
       }
