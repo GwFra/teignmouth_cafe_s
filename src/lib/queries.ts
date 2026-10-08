@@ -2,7 +2,12 @@ import { desc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { cafes, reviews } from "@/lib/db/schema";
-import type { CafeOption, CafeWithStats, ReviewRow } from "@/lib/types";
+import type {
+  CafeOption,
+  CafeWithStats,
+  ReviewRow,
+  WorthIt,
+} from "@/lib/types";
 
 /** All reviews, newest first, joined to their cafe for the list & map views. */
 export async function getReviews(): Promise<ReviewRow[]> {
@@ -43,9 +48,12 @@ export async function getCafesWithStats(): Promise<CafeWithStats[]> {
       reviewCount: sql<number>`count(${reviews.id})::int`,
       avgRating: sql<number | null>`avg(${reviews.rating})::float`,
       avgCost: sql<number | null>`avg(${reviews.cost})::float`,
-      worthItRate: sql<
-        number | null
-      >`avg(case when ${reviews.worthIt} = 'yes' then 1.0 else 0.0 end)::float`,
+      // Same majority rule as the client-side recompute in ReviewsExplorer.
+      worthIt: sql<WorthIt | null>`case
+        when count(${reviews.id}) = 0 then null
+        when count(*) filter (where ${reviews.worthIt} = 'yes') * 2 >= count(${reviews.id}) then 'yes'
+        else 'no'
+      end`,
     })
     .from(cafes)
     .leftJoin(reviews, eq(reviews.cafeId, cafes.id))

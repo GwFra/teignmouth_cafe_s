@@ -32,7 +32,7 @@ export default async function RootLayout({
               : null
           }
         />
-        <main className="container flex flex-1 flex-col overflow-y-auto py-6">
+        <main className="container flex flex-1 flex-col overflow-y-auto pt-6 pb-10">
           {children}
         </main>
       </body>
