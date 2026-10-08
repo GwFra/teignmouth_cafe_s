@@ -11,7 +11,9 @@ export function formatCost(cost: string | number | null | undefined): string {
 }
 
 /** Render a rating (stored as a string like "4.5") as "4.5 / 5". */
-export function formatRating(rating: string | number | null | undefined): string {
+export function formatRating(
+  rating: string | number | null | undefined,
+): string {
   if (rating === null || rating === undefined || rating === "") return "—";
   const n = typeof rating === "number" ? rating : Number(rating);
   if (Number.isNaN(n)) return "—";
@@ -24,7 +26,7 @@ export function formatType(type: "machine" | "barista"): string {
 }
 
 export function formatWorthIt(worthIt: "yes" | "no"): string {
-  return worthIt === "yes" ? "Worth it" : "Not worth it";
+  return worthIt === "yes" ? "✅" : "❌";
 }
 
 export function formatDate(value: string | Date): string {

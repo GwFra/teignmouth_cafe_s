@@ -15,5 +15,14 @@ export const TEIGNMOUTH_BOUNDS = {
 // `@react-google-maps/api` requires this array to be a stable reference
 // across renders (a new array each render triggers a "LoadScript reloaded"
 // warning and re-injects the script), so it's defined once here and shared
-// by every `useJsApiLoader` call in the app.
-export const GOOGLE_MAPS_LIBRARIES: "places"[] = ["places"];
+// by every `useJsApiLoader` call in the app. "marker" provides
+// `AdvancedMarkerElement` for the map view.
+export const GOOGLE_MAPS_LIBRARIES: ("places" | "marker")[] = [
+  "places",
+  "marker",
+];
+
+// Advanced markers only render on a map with a Map ID. Google's DEMO_MAP_ID
+// works for local development; set a real one from Cloud Console in prod.
+export const GOOGLE_MAPS_MAP_ID =
+  process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID";

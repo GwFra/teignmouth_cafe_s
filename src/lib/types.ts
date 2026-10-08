@@ -29,7 +29,9 @@ export interface CafeWithStats {
   reviewCount: number;
   avgRating: number | null;
   avgCost: number | null;
-  worthItRate: number | null; // 0..1 fraction of reviews marked "yes"
+  // Majority verdict: "yes" if at least half the reviews say so; null when
+  // there are no reviews.
+  worthIt: WorthIt | null;
 }
 
 export interface CafeOption {
