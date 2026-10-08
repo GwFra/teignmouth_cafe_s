@@ -1,9 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useJsApiLoader } from "@react-google-maps/api";
+import { AlertCircle } from "lucide-react";
 
 import { PlaceAutocompleteField } from "@/components/admin/place-autocomplete-field";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,8 +19,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -25,10 +37,34 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { apiSend } from "@/lib/client";
+import { requiredNumberInRange } from "@/lib/form-validation";
 import { GOOGLE_MAPS_LIBRARIES, TEIGNMOUTH_BOUNDS } from "@/lib/maps-config";
 import type { CafeOption, ReviewRow } from "@/lib/types";
 
 const NEW_CAFE = "__new__";
+
+// Client-side mirror of parseReviewInput, so mistakes show against the field
+// before a round trip. The API still validates on its own.
+const reviewFormSchema = z
+  .object({
+    cafeId: z.string(),
+    cafeName: z.string().trim(),
+    // Filled in by the Places search; there are no inputs for these.
+    cafeAddress: z.string(),
+    cafeLat: z.string(),
+    cafeLng: z.string(),
+    type: z.enum(["barista", "machine"]),
+    worthIt: z.enum(["yes", "no"]),
+    rating: requiredNumberInRange(0, 5, "Rating must be between 0 and 5."),
+    cost: requiredNumberInRange(0, Infinity, "Cost must be £0 or more."),
+    notes: z.string(),
+  })
+  .refine((v) => v.cafeId !== NEW_CAFE || v.cafeName !== "", {
+    path: ["cafeName"],
+    message: "Enter the new cafe's name.",
+  });
+
+type ReviewFormValues = z.infer<typeof reviewFormSchema>;
 
 interface Props {
   cafes: CafeOption[];
@@ -39,19 +75,27 @@ interface Props {
 
 export function ReviewDialog({ cafes, review, trigger, onSaved }: Props) {
   const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const [cafeId, setCafeId] = useState<string>(review?.cafeId ?? NEW_CAFE);
-  const [cafeName, setCafeName] = useState<string>("");
-  const [cafeAddress, setCafeAddress] = useState<string>("");
-  const [cafeLat, setCafeLat] = useState<string>("");
-  const [cafeLng, setCafeLng] = useState<string>("");
-  const [type, setType] = useState<string>(review?.type ?? "barista");
-  const [worthIt, setWorthIt] = useState<string>(review?.worthIt ?? "yes");
-  const [rating, setRating] = useState<string>(review?.rating ?? "4.0");
-  const [cost, setCost] = useState<string>(review?.cost ?? "3.40");
-  const [notes, setNotes] = useState<string>(review?.notes ?? "");
+  const form = useForm<ReviewFormValues>({
+    resolver: zodResolver(reviewFormSchema),
+    defaultValues: {
+      cafeId: review?.cafeId ?? NEW_CAFE,
+      cafeName: "",
+      cafeAddress: "",
+      cafeLat: "",
+      cafeLng: "",
+      type: review?.type ?? "barista",
+      worthIt: review?.worthIt ?? "yes",
+      rating: review?.rating ?? "4.0",
+      cost: review?.cost ?? "3.40",
+      notes: review?.notes ?? "",
+    },
+  });
+  const { isSubmitting, errors } = form.formState;
+  const [cafeId, cafeAddress, cafeLat, cafeLng] = useWatch({
+    control: form.control,
+    name: ["cafeId", "cafeAddress", "cafeLat", "cafeLng"],
+  });
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const { isLoaded: mapsLoaded } = useJsApiLoader({
@@ -60,22 +104,22 @@ export function ReviewDialog({ cafes, review, trigger, onSaved }: Props) {
     libraries: GOOGLE_MAPS_LIBRARIES,
   });
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    setError(null);
+  async function submit(values: ReviewFormValues) {
+    const isNewCafe = values.cafeId === NEW_CAFE;
     try {
       const payload = {
-        cafeId: cafeId === NEW_CAFE ? null : cafeId,
-        cafeName: cafeId === NEW_CAFE ? cafeName : null,
-        cafeAddress: cafeId === NEW_CAFE ? cafeAddress || null : null,
-        cafeLat: cafeId === NEW_CAFE && cafeLat !== "" ? Number(cafeLat) : null,
-        cafeLng: cafeId === NEW_CAFE && cafeLng !== "" ? Number(cafeLng) : null,
-        type,
-        worthIt,
-        rating,
-        cost,
-        notes,
+        cafeId: isNewCafe ? null : values.cafeId,
+        cafeName: isNewCafe ? values.cafeName : null,
+        cafeAddress: isNewCafe ? values.cafeAddress || null : null,
+        cafeLat:
+          isNewCafe && values.cafeLat !== "" ? Number(values.cafeLat) : null,
+        cafeLng:
+          isNewCafe && values.cafeLng !== "" ? Number(values.cafeLng) : null,
+        type: values.type,
+        worthIt: values.worthIt,
+        rating: values.rating,
+        cost: values.cost,
+        notes: values.notes,
       };
       if (review) {
         await apiSend(`/api/reviews/${review.id}`, "PATCH", payload);
@@ -85,9 +129,9 @@ export function ReviewDialog({ cafes, review, trigger, onSaved }: Props) {
       setOpen(false);
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save");
-    } finally {
-      setSaving(false);
+      form.setError("root", {
+        message: err instanceof Error ? err.message : "Failed to save",
+      });
     }
   }
 
@@ -102,125 +146,192 @@ export function ReviewDialog({ cafes, review, trigger, onSaved }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-1">
-            <Label>Cafe</Label>
-            <Select value={cafeId} onValueChange={setCafeId}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NEW_CAFE}>➕ New cafe…</SelectItem>
-                {cafes.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {cafeId === NEW_CAFE && (
-              <div className="mt-2 space-y-2">
-                {mapsLoaded && (
-                  <PlaceAutocompleteField
-                    id="review-place-search"
-                    placeholder="Search Google Places…"
-                    bounds={TEIGNMOUTH_BOUNDS}
-                    onPlaceSelected={(place) => {
-                      setCafeName(place.name ?? cafeName);
-                      setCafeAddress(place.address ?? cafeAddress);
-                      setCafeLat(String(place.lat));
-                      setCafeLng(String(place.lng));
-                    }}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
+            <div className="space-y-2">
+              <FormField
+                control={form.control}
+                name="cafeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cafe</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NEW_CAFE}>➕ New cafe…</SelectItem>
+                        {cafes.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {cafeId === NEW_CAFE && (
+                <>
+                  {mapsLoaded && (
+                    <PlaceAutocompleteField
+                      id="review-place-search"
+                      placeholder="Search Google Places…"
+                      bounds={TEIGNMOUTH_BOUNDS}
+                      onPlaceSelected={(place) => {
+                        const opts = { shouldValidate: true, shouldDirty: true };
+                        if (place.name) {
+                          form.setValue("cafeName", place.name, opts);
+                        }
+                        if (place.address) {
+                          form.setValue("cafeAddress", place.address, opts);
+                        }
+                        form.setValue("cafeLat", String(place.lat), opts);
+                        form.setValue("cafeLng", String(place.lng), opts);
+                      }}
+                    />
+                  )}
+                  <FormField
+                    control={form.control}
+                    name="cafeName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="sr-only">New cafe name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="New cafe name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                )}
-                <Input
-                  placeholder="New cafe name"
-                  value={cafeName}
-                  onChange={(e) => setCafeName(e.target.value)}
-                  required
-                />
-                {cafeLat !== "" && cafeLng !== "" && (
-                  <p className="text-xs text-muted-foreground">
-                    Location captured{cafeAddress ? `: ${cafeAddress}` : ""}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label>Type</Label>
-              <Select value={type} onValueChange={setType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="barista">Barista</SelectItem>
-                  <SelectItem value="machine">Machine</SelectItem>
-                </SelectContent>
-              </Select>
+                  {cafeLat !== "" && cafeLng !== "" && (
+                    <p className="text-xs text-muted-foreground">
+                      Location captured{cafeAddress ? `: ${cafeAddress}` : ""}
+                    </p>
+                  )}
+                </>
+              )}
             </div>
-            <div className="space-y-1">
-              <Label>Worth it?</Label>
-              <Select value={worthIt} onValueChange={setWorthIt}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="yes">Yes</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="rating">Rating (out of 5)</Label>
-              <Input
-                id="rating"
-                type="number"
-                min="0"
-                max="5"
-                step="0.1"
-                value={rating}
-                onChange={(e) => setRating(e.target.value)}
-                required
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="barista">Barista</SelectItem>
+                        <SelectItem value="machine">Machine</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="worthIt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Worth it?</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="yes">Yes</SelectItem>
+                        <SelectItem value="no">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="cost">Cost (£)</Label>
-              <Input
-                id="cost"
-                type="number"
-                min="0"
-                step="0.01"
-                value={cost}
-                onChange={(e) => setCost(e.target.value)}
-                required
+
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="rating"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Rating (out of 5)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="5"
+                        step="0.1"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="cost"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cost (£)</FormLabel>
+                    <FormControl>
+                      <Input type="number" min="0" step="0.01" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-          </div>
 
-          <div className="space-y-1">
-            <Label htmlFor="notes">Notes (optional)</Label>
-            <Textarea
-              id="notes"
-              placeholder="Silky microfoam, great value…"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes (optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Silky microfoam, great value…"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+            {errors.root && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{errors.root.message}</AlertDescription>
+              </Alert>
+            )}
 
-          <DialogFooter>
-            <Button type="submit" disabled={saving}>
-              {saving ? "Saving…" : review ? "Save changes" : "Add review"}
-            </Button>
-          </DialogFooter>
-        </form>
+            <DialogFooter>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting
+                  ? "Saving…"
+                  : review
+                    ? "Save changes"
+                    : "Add review"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
