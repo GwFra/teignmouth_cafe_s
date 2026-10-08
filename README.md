@@ -152,6 +152,17 @@ Works well on Vercel. Set the same environment variables in the project
 settings, point `APP_URL` at your production origin, and add the production
 `/api/auth/callback` URL to the Google OAuth client's authorised redirect URIs.
 
+### Releases
+
+Versioning is handled by [release-please](https://github.com/googleapis/release-please).
+Conventional commits merged to `main` keep a release PR up to date; merging that
+PR bumps `package.json`, updates `CHANGELOG.md`, and tags a GitHub release
+(e.g. `0.3.0`).
+
+Merging the release PR automatically deploys the new tag to Vercel production.
+The deploy needs the `VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID`
+secrets.
+
 ## Roadmap
 
 - Native mobile app (future — not in this outline).
