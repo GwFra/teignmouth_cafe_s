@@ -1,6 +1,6 @@
 {
   "name": "teignmouth-flat-whites",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Reviews and ratings for flat whites across the cafes of Teignmouth",
   "scripts": {
