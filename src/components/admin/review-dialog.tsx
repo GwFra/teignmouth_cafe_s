@@ -35,36 +35,68 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { apiSend } from "@/lib/client";
 import { requiredNumberInRange } from "@/lib/form-validation";
 import { GOOGLE_MAPS_LIBRARIES, TEIGNMOUTH_BOUNDS } from "@/lib/maps-config";
 import type { CafeOption, ReviewRow } from "@/lib/types";
 
-const NEW_CAFE = "__new__";
-
 // Client-side mirror of parseReviewInput, so mistakes show against the field
 // before a round trip. The API still validates on its own.
 const reviewFormSchema = z
   .object({
+    cafeMode: z.enum(["existing", "new"]),
     cafeId: z.string(),
     cafeName: z.string().trim(),
     // Filled in by the Places search; there are no inputs for these.
     cafeAddress: z.string(),
     cafeLat: z.string(),
     cafeLng: z.string(),
-    type: z.enum(["barista", "machine"]),
-    worthIt: z.enum(["yes", "no"]),
+    // "" until a choice is made, so the selects can show their placeholders.
+    type: z
+      .enum(["barista", "machine"])
+      .or(z.literal(""))
+      .refine((v) => v !== "", "Choose a type."),
+    worthIt: z
+      .enum(["yes", "no"])
+      .or(z.literal(""))
+      .refine((v) => v !== "", "Choose whether it was worth it."),
     rating: requiredNumberInRange(0, 5, "Rating must be between 0 and 5."),
     cost: requiredNumberInRange(0, Infinity, "Cost must be £0 or more."),
     notes: z.string(),
   })
-  .refine((v) => v.cafeId !== NEW_CAFE || v.cafeName !== "", {
+  .refine((v) => v.cafeMode !== "existing" || v.cafeId !== "", {
+    path: ["cafeId"],
+    message: "Choose a cafe.",
+  })
+  .refine((v) => v.cafeMode !== "new" || v.cafeName !== "", {
     path: ["cafeName"],
     message: "Enter the new cafe's name.",
   });
 
-type ReviewFormValues = z.infer<typeof reviewFormSchema>;
+// What the inputs hold (selects may still be ""), vs. what submit receives.
+type ReviewFormInput = z.input<typeof reviewFormSchema>;
+type ReviewFormValues = z.output<typeof reviewFormSchema>;
+
+function defaultValuesFor(
+  cafes: CafeOption[],
+  review?: ReviewRow,
+): ReviewFormInput {
+  return {
+    cafeMode: review || cafes.length > 0 ? "existing" : "new",
+    cafeId: review?.cafeId ?? "",
+    cafeName: "",
+    cafeAddress: "",
+    cafeLat: "",
+    cafeLng: "",
+    type: review?.type ?? "",
+    worthIt: review?.worthIt ?? "",
+    rating: review?.rating ?? "",
+    cost: review?.cost ?? "",
+    notes: review?.notes ?? "",
+  };
+}
 
 interface Props {
   cafes: CafeOption[];
@@ -76,25 +108,14 @@ interface Props {
 export function ReviewDialog({ cafes, review, trigger, onSaved }: Props) {
   const [open, setOpen] = useState(false);
 
-  const form = useForm<ReviewFormValues>({
+  const form = useForm<ReviewFormInput, unknown, ReviewFormValues>({
     resolver: zodResolver(reviewFormSchema),
-    defaultValues: {
-      cafeId: review?.cafeId ?? NEW_CAFE,
-      cafeName: "",
-      cafeAddress: "",
-      cafeLat: "",
-      cafeLng: "",
-      type: review?.type ?? "barista",
-      worthIt: review?.worthIt ?? "yes",
-      rating: review?.rating ?? "4.0",
-      cost: review?.cost ?? "3.40",
-      notes: review?.notes ?? "",
-    },
+    defaultValues: defaultValuesFor(cafes, review),
   });
   const { isSubmitting, errors } = form.formState;
-  const [cafeId, cafeAddress, cafeLat, cafeLng] = useWatch({
+  const [cafeMode, cafeAddress, cafeLat, cafeLng] = useWatch({
     control: form.control,
-    name: ["cafeId", "cafeAddress", "cafeLat", "cafeLng"],
+    name: ["cafeMode", "cafeAddress", "cafeLat", "cafeLng"],
   });
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -104,8 +125,16 @@ export function ReviewDialog({ cafes, review, trigger, onSaved }: Props) {
     libraries: GOOGLE_MAPS_LIBRARIES,
   });
 
+  // The form outlives the dialog, so start each opening from a clean slate
+  // rather than whatever was left from the last review (including the
+  // captured location).
+  function handleOpenChange(next: boolean) {
+    if (next) form.reset(defaultValuesFor(cafes, review));
+    setOpen(next);
+  }
+
   async function submit(values: ReviewFormValues) {
-    const isNewCafe = values.cafeId === NEW_CAFE;
+    const isNewCafe = values.cafeMode === "new";
     try {
       const payload = {
         cafeId: isNewCafe ? null : values.cafeId,
@@ -136,7 +165,7 @@ export function ReviewDialog({ cafes, review, trigger, onSaved }: Props) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -149,41 +178,70 @@ export function ReviewDialog({ cafes, review, trigger, onSaved }: Props) {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
             <div className="space-y-2">
-              <FormField
-                control={form.control}
-                name="cafeId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cafe</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={NEW_CAFE}>➕ New cafe…</SelectItem>
-                        {cafes.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <p className="text-sm font-medium leading-none">Cafe</p>
+              <Tabs
+                value={cafeMode}
+                onValueChange={(v) =>
+                  form.setValue("cafeMode", v as ReviewFormInput["cafeMode"], {
+                    shouldDirty: true,
+                  })
+                }
+                className="space-y-2"
+              >
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="existing">Existing cafe</TabsTrigger>
+                  <TabsTrigger value="new">New cafe</TabsTrigger>
+                </TabsList>
 
-              {cafeId === NEW_CAFE && (
-                <>
+                <TabsContent value="existing">
+                  {cafes.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No cafes yet. Add one from the New cafe tab.
+                    </p>
+                  ) : (
+                    <FormField
+                      control={form.control}
+                      name="cafeId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="sr-only">
+                            Existing cafe
+                          </FormLabel>
+                          <Select
+                            value={field.value}
+                            onValueChange={field.onChange}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Choose a cafe…" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {cafes.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </TabsContent>
+
+                <TabsContent value="new" className="space-y-2">
                   {mapsLoaded && (
                     <PlaceAutocompleteField
                       id="review-place-search"
                       placeholder="Search Google Places…"
                       bounds={TEIGNMOUTH_BOUNDS}
                       onPlaceSelected={(place) => {
-                        const opts = { shouldValidate: true, shouldDirty: true };
+                        const opts = {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        };
                         if (place.name) {
                           form.setValue("cafeName", place.name, opts);
                         }
@@ -210,11 +268,12 @@ export function ReviewDialog({ cafes, review, trigger, onSaved }: Props) {
                   />
                   {cafeLat !== "" && cafeLng !== "" && (
                     <p className="text-xs text-muted-foreground">
-                      Location captured{cafeAddress ? `: ${cafeAddress}` : ""}
+                      Location captured
+                      {cafeAddress ? `: ${cafeAddress}` : ""}
                     </p>
                   )}
-                </>
-              )}
+                </TabsContent>
+              </Tabs>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -227,7 +286,7 @@ export function ReviewDialog({ cafes, review, trigger, onSaved }: Props) {
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Choose…" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -248,7 +307,7 @@ export function ReviewDialog({ cafes, review, trigger, onSaved }: Props) {
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Yes or no?" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -275,6 +334,7 @@ export function ReviewDialog({ cafes, review, trigger, onSaved }: Props) {
                         min="0"
                         max="5"
                         step="0.1"
+                        placeholder="e.g. 4.0"
                         {...field}
                       />
                     </FormControl>
@@ -289,7 +349,13 @@ export function ReviewDialog({ cafes, review, trigger, onSaved }: Props) {
                   <FormItem>
                     <FormLabel>Cost (£)</FormLabel>
                     <FormControl>
-                      <Input type="number" min="0" step="0.01" {...field} />
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="e.g. 3.50"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
