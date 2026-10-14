@@ -58,3 +58,69 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+/*
+ * Google's <gmp-place-autocomplete> renders in a shadow root, so it can only
+ * be styled through the host properties and ::part()s it exposes. These
+ * mirror the shadcn <Input> (and the popover for the suggestion list).
+ */
+@layer components {
+  gmp-place-autocomplete {
+    background-color: transparent;
+    border: 1px solid hsl(var(--input));
+    border-radius: calc(var(--radius) - 2px);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    color: hsl(var(--foreground));
+    color-scheme: light;
+    font-family: inherit;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    /* Not in Google's documented list, but brings it down to <Input>'s h-9. */
+    height: 2.25rem;
+    transition: box-shadow 150ms;
+  }
+
+  @media (min-width: 768px) {
+    gmp-place-autocomplete {
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+    }
+  }
+
+  .dark gmp-place-autocomplete {
+    color-scheme: dark;
+  }
+
+  gmp-place-autocomplete:focus-within {
+    box-shadow: 0 0 0 1px hsl(var(--ring));
+  }
+
+  /* Replaced by the :focus-within ring above. */
+  gmp-place-autocomplete::part(focus-ring) {
+    display: none;
+  }
+
+  gmp-place-autocomplete::part(input)::placeholder {
+    color: hsl(var(--muted-foreground));
+    opacity: 1;
+  }
+
+  gmp-place-autocomplete::part(prediction-list) {
+    background-color: hsl(var(--popover));
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) - 2px);
+    box-shadow:
+      0 4px 6px -1px rgb(0 0 0 / 0.1),
+      0 2px 4px -2px rgb(0 0 0 / 0.1);
+    color: hsl(var(--popover-foreground));
+  }
+
+  gmp-place-autocomplete::part(prediction-item-selected) {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+
+  gmp-place-autocomplete::part(prediction-item-secondary-text) {
+    color: hsl(var(--muted-foreground));
+  }
+}
