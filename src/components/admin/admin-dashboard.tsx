@@ -12,6 +12,7 @@ import {
 
 import { CafeDialog } from "@/components/admin/cafe-dialog";
 import { ReviewDialog } from "@/components/admin/review-dialog";
+import { ReviewType } from "@/components/review-type";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { apiSend } from "@/lib/client";
-import { formatCost, formatDate, formatRating, formatType } from "@/lib/format";
+import { formatCost, formatDate, formatRating } from "@/lib/format";
 import type { CafeWithStats, ReviewRow } from "@/lib/types";
 
 interface SessionRow {
@@ -135,7 +136,9 @@ export function AdminDashboard() {
                 reviews.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{r.cafeName}</TableCell>
-                    <TableCell>{formatType(r.type)}</TableCell>
+                    <TableCell>
+                      <ReviewType type={r.type} />
+                    </TableCell>
                     <TableCell>{formatRating(r.rating)}</TableCell>
                     <TableCell>{formatCost(r.cost)}</TableCell>
                     <TableCell>

@@ -3,7 +3,10 @@
 import { useMemo, useState } from "react";
 import { List, Map as MapIcon } from "lucide-react";
 
-import { ReviewFilterBar } from "@/components/views/review-filter-bar";
+import {
+  ReviewFilterBar,
+  ReviewFilterDialog,
+} from "@/components/views/review-filter-bar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ListView } from "@/components/views/list-view";
 import { MapView } from "@/components/views/map-view";
@@ -102,18 +105,27 @@ export function ReviewsExplorer({ reviews, cafes, className }: Props) {
       onValueChange={setTab}
       className={cn("flex flex-col gap-4", className)}
     >
-      <TabsList className="flex flex-row justify-start w-fit">
-        <TabsTrigger value="map">
-          <MapIcon className="h-4 w-4" />
-          Map
-        </TabsTrigger>
-        <TabsTrigger value="list">
-          <List className="h-4 w-4" />
-          List
-        </TabsTrigger>
-      </TabsList>
+      <div className="flex items-center justify-between gap-2">
+        <TabsList className="flex flex-row justify-start w-fit">
+          <TabsTrigger value="map">
+            <MapIcon className="h-4 w-4" />
+            Map
+          </TabsTrigger>
+          <TabsTrigger value="list">
+            <List className="h-4 w-4" />
+            List
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="shrink-0">
+        <ReviewFilterDialog
+          value={filters}
+          onChange={setFilters}
+          reviews={reviews}
+          className="sm:hidden"
+        />
+      </div>
+
+      <div className="hidden shrink-0 sm:block">
         <ReviewFilterBar value={filters} onChange={setFilters} />
       </div>
 
@@ -121,7 +133,7 @@ export function ReviewsExplorer({ reviews, cafes, className }: Props) {
         <MapView cafes={filteredCafes} />
       </TabsContent>
 
-      <TabsContent value="list" className="min-h-0 flex-1 overflow-y-auto">
+      <TabsContent value="list" className="min-h-0 flex-1">
         <ListView reviews={filteredReviews} totalCount={reviews.length} />
       </TabsContent>
     </Tabs>
