@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
+import { ReviewType } from "@/components/review-type";
+import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -19,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCost, formatDate, formatRating, formatType } from "@/lib/format";
+import { formatCost, formatDate, formatRating } from "@/lib/format";
 import type { ReviewRow } from "@/lib/types";
 
 type SortKey = "cafe" | "rating" | "cost" | "createdAt";
@@ -48,8 +49,10 @@ export function ListView({ reviews, totalCount }: Props) {
   }, [reviews, sort]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
+    // Fills the tab's height: the count/sort row stays put and only the table
+    // body scrolls, under a sticky header.
+    <div className="flex h-full min-h-0 flex-col gap-4">
+      <div className="flex shrink-0 items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
           {sorted.length} of {totalCount} review
           {totalCount === 1 ? "" : "s"}
@@ -71,9 +74,11 @@ export function ListView({ reviews, totalCount }: Props) {
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
+      <div className="flex min-h-[240px] flex-1 flex-col overflow-hidden rounded-lg border">
+        <Table containerClassName="min-h-0 flex-1">
+          {/* Cell box-shadow stands in for the row border, which doesn't
+              stick with the header under border-collapse. */}
+          <TableHeader className="sticky top-0 z-10 bg-background [&_th]:shadow-[inset_0_-1px_0_hsl(var(--border))] [&_tr]:border-b-0">
             <TableRow>
               <TableHead>Cafe</TableHead>
               <TableHead>Type</TableHead>
@@ -99,7 +104,10 @@ export function ListView({ reviews, totalCount }: Props) {
                 <TableRow key={r.id}>
                   <TableCell className="font-medium">{r.cafeName}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{formatType(r.type)}</Badge>
+                    <ReviewType
+                      type={r.type}
+                      className={badgeVariants({ variant: "secondary" })}
+                    />
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {formatRating(r.rating)}

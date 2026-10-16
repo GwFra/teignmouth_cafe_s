@@ -20,8 +20,13 @@ export function formatRating(
   return `${n.toFixed(1)} / 5`;
 }
 
-/** Title-case a review type for display. */
+/** Emoji for a review type, for compact display. */
 export function formatType(type: "machine" | "barista"): string {
+  return type === "barista" ? "🧑‍🍳" : "🤖";
+}
+
+/** Title-cased name of a review type, e.g. for the emoji's tooltip. */
+export function formatTypeLabel(type: "machine" | "barista"): string {
   return type === "barista" ? "Barista" : "Machine";
 }
 
