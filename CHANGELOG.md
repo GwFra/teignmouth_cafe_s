@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/GwFra/teignmouth_cafe_s/compare/teignmouth-flat-whites-0.3.0...teignmouth-flat-whites-0.3.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* **reviews:** fixed stale state and ease of adding review ([c679af2](https://github.com/GwFra/teignmouth_cafe_s/commit/c679af259a5bd451e2c6eefab0b1e6497d51748c))
+
 ## [0.3.0](https://github.com/GwFra/teignmouth_cafe_s/compare/teignmouth-flat-whites-0.2.0...teignmouth-flat-whites-0.3.0) (2026-10-08)
 
 
