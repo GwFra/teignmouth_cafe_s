@@ -2,50 +2,61 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Colours are plain hex; tailwind.config.ts wraps them in color-mix() so
+ * opacity modifiers (bg-primary/80) still work.
+ */
 @layer base {
   :root {
-    --background: 40 30% 98%;
-    --foreground: 20 14.3% 4.1%;
-    --card: 0 0% 100%;
-    --card-foreground: 20 14.3% 4.1%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 20 14.3% 4.1%;
-    --primary: 24 60% 33%;
-    --primary-foreground: 60 9.1% 97.8%;
-    --secondary: 30 20% 92%;
-    --secondary-foreground: 24 9.8% 10%;
-    --muted: 30 20% 94%;
-    --muted-foreground: 25 5.3% 44.7%;
-    --accent: 30 30% 90%;
-    --accent-foreground: 24 9.8% 10%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 60 9.1% 97.8%;
-    --border: 20 15% 88%;
-    --input: 20 15% 88%;
-    --ring: 24 60% 33%;
+    --background: #faf6f0;              /* milk foam */
+    --surface: #f1e7da;                 /* steamed milk */
+    --foreground: #2b1d14;              /* espresso */
+    --primary: #6f4e37;                 /* roast brown */
+    --primary-foreground: #faf6f0;
+    --accent: #c8a27a;                  /* crema — decorative only */
+    --highlight: #a63d40;               /* coffee cherry */
+    --highlight-foreground: #faf6f0;
+
+    /* shadcn/ui tokens, derived from the palette above */
+    --card: var(--surface);
+    --card-foreground: var(--foreground);
+    --popover: var(--surface);
+    --popover-foreground: var(--foreground);
+    --secondary: var(--surface);
+    --secondary-foreground: var(--foreground);
+    --muted: var(--surface);
+    --muted-foreground: #6b5a4c;        /* 4.5:1+ on surface */
+    --accent-foreground: var(--foreground);
+    --destructive: var(--highlight);
+    --destructive-foreground: var(--highlight-foreground);
+    --border: #e3d5c3;
+    --input: #d6c5b0;
+    --ring: var(--primary);
     --radius: 0.6rem;
+
+    color-scheme: light;
   }
 
+  /*
+   * Toggled on <html> by the theme selector; follows prefers-color-scheme
+   * unless the visitor picks light or dark explicitly.
+   */
   .dark {
-    --background: 20 14.3% 6%;
-    --foreground: 60 9.1% 97.8%;
-    --card: 20 14% 9%;
-    --card-foreground: 60 9.1% 97.8%;
-    --popover: 20 14% 9%;
-    --popover-foreground: 60 9.1% 97.8%;
-    --primary: 28 70% 55%;
-    --primary-foreground: 20 14.3% 8%;
-    --secondary: 24 6% 16%;
-    --secondary-foreground: 60 9.1% 97.8%;
-    --muted: 24 6% 16%;
-    --muted-foreground: 24 5% 64%;
-    --accent: 24 6% 18%;
-    --accent-foreground: 60 9.1% 97.8%;
-    --destructive: 0 62.8% 45%;
-    --destructive-foreground: 60 9.1% 97.8%;
-    --border: 24 6% 20%;
-    --input: 24 6% 20%;
-    --ring: 28 70% 55%;
+    --background: #1c1410;
+    --surface: #2a1f18;
+    --foreground: #f3e9dc;
+    --primary: #d4a373;
+    --primary-foreground: #1c1410;
+    --accent: #e8c9a0;
+    --highlight: #d9686b;
+    --highlight-foreground: #1c1410;
+
+    --muted-foreground: #a8988a;        /* 4.5:1+ on surface */
+    --accent-foreground: #1c1410;       /* crema stays light, so text flips dark */
+    --border: #3d2e24;
+    --input: #4d3b2f;
+
+    color-scheme: dark;
   }
 }
 
@@ -67,10 +78,10 @@
 @layer components {
   gmp-place-autocomplete {
     background-color: transparent;
-    border: 1px solid hsl(var(--input));
+    border: 1px solid var(--input);
     border-radius: calc(var(--radius) - 2px);
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    color: hsl(var(--foreground));
+    color: var(--foreground);
     color-scheme: light;
     font-family: inherit;
     font-size: 1rem;
@@ -92,7 +103,7 @@
   }
 
   gmp-place-autocomplete:focus-within {
-    box-shadow: 0 0 0 1px hsl(var(--ring));
+    box-shadow: 0 0 0 1px var(--ring);
   }
 
   /* Replaced by the :focus-within ring above. */
@@ -101,26 +112,26 @@
   }
 
   gmp-place-autocomplete::part(input)::placeholder {
-    color: hsl(var(--muted-foreground));
+    color: var(--muted-foreground);
     opacity: 1;
   }
 
   gmp-place-autocomplete::part(prediction-list) {
-    background-color: hsl(var(--popover));
-    border: 1px solid hsl(var(--border));
+    background-color: var(--popover);
+    border: 1px solid var(--border);
     border-radius: calc(var(--radius) - 2px);
     box-shadow:
       0 4px 6px -1px rgb(0 0 0 / 0.1),
       0 2px 4px -2px rgb(0 0 0 / 0.1);
-    color: hsl(var(--popover-foreground));
+    color: var(--popover-foreground);
   }
 
   gmp-place-autocomplete::part(prediction-item-selected) {
-    background-color: hsl(var(--accent));
-    color: hsl(var(--accent-foreground));
+    background-color: var(--accent);
+    color: var(--accent-foreground);
   }
 
   gmp-place-autocomplete::part(prediction-item-secondary-text) {
-    color: hsl(var(--muted-foreground));
+    color: var(--muted-foreground);
   }
 }
