@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/GwFra/teignmouth_cafe_s/compare/teignmouth-flat-whites-0.3.1...teignmouth-flat-whites-0.3.2) (2026-10-18)
+
+
+### Bug Fixes
+
+* **reviews:** added filter pop-up on mobile ([aafbe67](https://github.com/GwFra/teignmouth_cafe_s/commit/aafbe671b02e378c15598c1d9cd27247b8e344ff))
+
 ## [0.3.1](https://github.com/GwFra/teignmouth_cafe_s/compare/teignmouth-flat-whites-0.3.0...teignmouth-flat-whites-0.3.1) (2026-10-18)
 
 
