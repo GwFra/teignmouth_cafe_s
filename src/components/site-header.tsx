@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Coffee, LayoutDashboard, LogIn, LogOut } from "lucide-react";
 
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 
 interface HeaderUser {
@@ -16,7 +17,7 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
       <div className="container flex h-14 items-center justify-between gap-2">
         <Link href="/" className="flex items-center gap-2 font-semibold">
           <img
-            src="/cat-latte-icon-120x120.png"
+            src="/cat-latte-icon-1024x1024.png"
             className="h-10 w-10 text-primary"
           />
           <span className="hidden sm:inline">Teignmouth Flat Whites</span>
@@ -24,6 +25,8 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
         </Link>
 
         <nav className="flex items-center gap-2">
+          <ThemeToggle />
+
           {user?.isAdmin && (
             <Button asChild variant="ghost" size="sm">
               <Link href="/admin">
