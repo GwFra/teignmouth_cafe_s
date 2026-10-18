@@ -39,6 +39,7 @@ import {
   TEIGNMOUTH,
 } from "@/lib/maps-config";
 import type { CafeWithStats } from "@/lib/types";
+import { useIsDark } from "@/lib/use-is-dark";
 
 const containerStyle = { width: "100%", height: "100%" };
 
@@ -51,6 +52,12 @@ export function MapView({ cafes }: { cafes: CafeWithStats[] }) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const [active, setActive] = useState<string | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
+  // Camera position carried across the remount when the theme changes.
+  const savedViewRef = useRef<{
+    center: google.maps.LatLng;
+    zoom: number;
+  } | null>(null);
+  const isDark = useIsDark();
 
   const located = useMemo(
     () => cafes.filter((c) => c.lat !== null && c.lng !== null),
@@ -70,9 +77,15 @@ export function MapView({ cafes }: { cafes: CafeWithStats[] }) {
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
+    const saved = savedViewRef.current;
+    if (saved) map.moveCamera(saved);
   }, []);
 
-  const onMapUnmount = useCallback(() => {
+  const onMapUnmount = useCallback((map: google.maps.Map) => {
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    savedViewRef.current =
+      center && zoom !== undefined ? { center, zoom } : null;
     mapRef.current = null;
   }, []);
 
@@ -95,17 +108,25 @@ export function MapView({ cafes }: { cafes: CafeWithStats[] }) {
   }
 
   if (loadError) {
-    return <MapNotice>Could not load Google Maps. Check the API key.</MapNotice>;
+    return (
+      <MapNotice>Could not load Google Maps. Check the API key.</MapNotice>
+    );
   }
 
-  if (!isLoaded) {
+  // isDark is unknown until hydration; waiting avoids building the map in
+  // light mode only to rebuild it in dark straight after.
+  if (!isLoaded || isDark === null) {
     return <MapNotice>Loading map…</MapNotice>;
   }
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
       <div className="relative min-h-[200px] flex-1 overflow-hidden rounded-lg border">
+        {/* colorScheme picks the light or dark variant of the Map ID's cloud
+            style, but is only read when the map is created, so the map is
+            rebuilt (keeping its camera) when the theme changes. */}
         <GoogleMap
+          key={isDark ? "dark" : "light"}
           mapContainerStyle={containerStyle}
           center={TEIGNMOUTH}
           zoom={DEFAULT_ZOOM}
@@ -113,6 +134,9 @@ export function MapView({ cafes }: { cafes: CafeWithStats[] }) {
           onUnmount={onMapUnmount}
           options={{
             mapId: GOOGLE_MAPS_MAP_ID,
+            colorScheme: isDark
+              ? google.maps.ColorScheme.DARK
+              : google.maps.ColorScheme.LIGHT,
             mapTypeControl: false,
             streetViewControl: false,
             fullscreenControl: false,
@@ -151,8 +175,8 @@ export function MapView({ cafes }: { cafes: CafeWithStats[] }) {
       ) : (
         located.length < cafes.length && (
           <p className="shrink-0 text-xs text-muted-foreground">
-            {cafes.length - located.length} cafe(s) have no location set and
-            are not shown on the map. Add coordinates in the admin dashboard.
+            {cafes.length - located.length} cafe(s) have no location set and are
+            not shown on the map. Add coordinates in the admin dashboard.
           </p>
         )
       )}
@@ -189,12 +213,11 @@ function MarkerClusterLayer({ children }: { children: React.ReactNode }) {
         radius: 60,
       }),
       renderer: clusterRenderer,
-      // Step in one level at a time rather than the library default of
-      // jumping straight to fit the cluster's bounds.
-      onClusterClick: (_event, cluster, clusterMap) => {
-        clusterMap.panTo(cluster.position);
-        clusterMap.setZoom((clusterMap.getZoom() ?? DEFAULT_ZOOM) + 1);
-      },
+      // clusterRenderer handles clicks itself. The library would otherwise
+      // attach its handler with marker.addListener("gmp-click"), which
+      // AdvancedMarkerElement warns about; only `undefined` falls back to its
+      // default handler, so null switches it off.
+      onClusterClick: null as unknown as undefined,
     });
 
     // Markers mount in a burst (initial load, filter changes), so batch
@@ -338,7 +361,7 @@ function CostPin({ cafe }: { cafe: CafeWithStats }) {
 // as plain DOM. They sit above single-cafe pins so a cluster is never hidden
 // behind one.
 const clusterRenderer: Renderer = {
-  render({ count, position }) {
+  render({ count, position }, _stats, map) {
     const content = document.createElement("div");
     content.className = pinStyles.wrapper;
 
@@ -346,21 +369,29 @@ const clusterRenderer: Renderer = {
     body.className = cn(
       badgeVariants(),
       pinStyles.body,
-      "bg-black text-white",
+      "bg-primary text-primary-foreground",
     );
     body.textContent = `${count} cafes`;
 
     const tail = document.createElement("span");
-    tail.className = cn(pinStyles.tail, "border-t-black");
+    tail.className = cn(pinStyles.tail, "border-t-primary");
 
     content.append(body, tail);
 
-    return new google.maps.marker.AdvancedMarkerElement({
+    const marker = new google.maps.marker.AdvancedMarkerElement({
       position,
       content,
       title: `${count} cafes, click to zoom in`,
       zIndex: 1000 + count,
+      gmpClickable: true,
     });
+    // Step in one level at a time rather than the library default of
+    // jumping straight to fit the cluster's bounds.
+    marker.addEventListener("gmp-click", () => {
+      map.panTo(position);
+      map.setZoom((map.getZoom() ?? DEFAULT_ZOOM) + 1);
+    });
+    return marker;
   },
 };
 
@@ -390,7 +421,6 @@ function CafeDetailCard({
       </CardHeader>
 
       <CardContent className="p-4 pt-0">
-
         {cafe.reviewCount > 0 ? (
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <div>
