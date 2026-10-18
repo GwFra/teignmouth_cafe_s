@@ -1,5 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Coffee, LayoutDashboard, LogIn, LogOut } from "lucide-react";
+import { LayoutDashboard, LogIn, LogOut } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -16,9 +17,12 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
     <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
       <div className="container flex h-14 items-center justify-between gap-2">
         <Link href="/" className="flex items-center gap-2 font-semibold">
-          <img
+          <Image
             src="/cat-latte-icon-1024x1024.png"
-            className="h-10 w-10 text-primary"
+            width={40}
+            height={40}
+            className="h-10 w-10"
+            alt="flat-whites-logo"
           />
           <span className="hidden sm:inline">Teignmouth Flat Whites</span>
           <span className="sm:hidden">Flat Whites</span>
