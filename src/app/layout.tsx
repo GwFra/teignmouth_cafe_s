@@ -3,6 +3,7 @@ import "./globals.css";
 
 import { SiteHeader } from "@/components/site-header";
 import { getAuth } from "@/lib/auth";
+import { themeInitScript } from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: "Teignmouth Flat Whites",
@@ -18,7 +19,12 @@ export default async function RootLayout({
   const auth = await getAuth();
 
   return (
-    <html lang="en-GB" className="h-full">
+    // suppressHydrationWarning: the theme script adds `dark` to <html> before
+    // React hydrates.
+    <html lang="en-GB" className="h-full" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="flex h-full flex-col antialiased">
         <SiteHeader
           user={

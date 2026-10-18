@@ -22,7 +22,8 @@ export const GOOGLE_MAPS_LIBRARIES: ("places" | "marker")[] = [
   "marker",
 ];
 
-// Advanced markers only render on a map with a Map ID. Google's DEMO_MAP_ID
-// works for local development; set a real one from Cloud Console in prod.
+// Advanced markers only render on a map with a Map ID, and the map's styling
+// comes from the Map Style linked to that ID in Cloud Console. Map IDs are
+// public (sent to every browser), so the app's own ID is the default.
 export const GOOGLE_MAPS_MAP_ID =
   process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID";
