@@ -1,0 +1,4 @@
+# Generated files (.gitignore'd paths like .next/ are skipped automatically)
+package-lock.json
+CHANGELOG.md
+drizzle/
