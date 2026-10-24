@@ -3,6 +3,7 @@ import "./globals.css";
 
 import { SiteHeader } from "@/components/site-header";
 import { getAuth } from "@/lib/auth";
+import { isDevLoginEnabled } from "@/lib/dev-login";
 import { themeInitScript } from "@/lib/theme";
 
 export const metadata: Metadata = {
@@ -37,6 +38,7 @@ export default async function RootLayout({
                 }
               : null
           }
+          devLogin={isDevLoginEnabled()}
         />
         <main className="container flex flex-1 flex-col overflow-y-auto pt-6 pb-10">
           {children}
