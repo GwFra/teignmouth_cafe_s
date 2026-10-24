@@ -24,5 +24,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Check .env.example annotations
+        run: npm run lint:env
+
       - name: Build
         run: npm run build

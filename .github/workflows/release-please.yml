@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  # Lets the env var status on the release PR be refreshed after adding
+  # values in GitHub, without another push to main.
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -25,6 +28,57 @@ jobs:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  # Flags environment variables added to (or removed from) .env.example since
+  # the last release on the open release PR, with whether each one's value is
+  # ready in GitHub Actions for the deploy to add to Vercel.
+  env-vars-notice:
+    needs: release-please
+    if: needs.release-please.outputs.release_created != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # needs tags to find the last release
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Update release PR comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Only used to check which values exist; never printed.
+          GH_SECRETS: ${{ toJSON(secrets) }}
+          GH_VARS: ${{ toJSON(vars) }}
+        run: |
+          PR=$(gh pr list --state open --label "autorelease: pending" --json number --jq '.[0].number // empty')
+          if [ -z "$PR" ]; then
+            echo "No open release PR."
+            exit 0
+          fi
+
+          BASE=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          BODY=$(node scripts/env-vars.mjs comment --base "$BASE")
+          MARKER='<!-- env-vars-release-check -->'
+          COMMENT_ID=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+            --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -n 1)
+
+          if [ -z "$BODY" ]; then
+            # Nothing to flag; drop a stale comment from an earlier push.
+            if [ -n "$COMMENT_ID" ]; then
+              gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/comments/$COMMENT_ID"
+            fi
+          elif [ -n "$COMMENT_ID" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$COMMENT_ID" -f body="$BODY" > /dev/null
+          else
+            gh pr comment "$PR" --body "$BODY"
+          fi
 
   deploy:
     needs: release-please
