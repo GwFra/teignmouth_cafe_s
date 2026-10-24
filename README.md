@@ -90,6 +90,29 @@ ones via the dashboard):
 npm run db:seed
 ```
 
+#### Or: use a local database in Docker
+
+Instead of a Neon project, you can run Postgres locally behind a Neon HTTP
+proxy, so the app's serverless driver works unchanged:
+
+```bash
+npm run db:up      # start Postgres + proxy (docker compose up -d)
+```
+
+and set this in `.env.local`:
+
+```bash
+DATABASE_URL="postgres://postgres:postgres@db.localtest.me:5432/main"
+```
+
+The first start, with an empty data volume, applies the migrations in
+`drizzle/` and loads the sample data from `docker/db/seed.sql`, so step 3's
+commands aren't needed. Data persists between restarts; `npm run db:reset`
+wipes the volume and re-seeds, and `npm run db:down` stops the containers.
+
+Schema changes only reach a fresh local database through migration files, so
+use `db:generate` (not just `db:push`) when changing `schema.ts`.
+
 ### 4. Run it
 
 ```bash
