@@ -94,7 +94,10 @@ export function MapView({ cafes }: { cafes: CafeWithStats[] }) {
     const map = mapRef.current;
     if (map && cafe.lat !== null && cafe.lng !== null) {
       map.panTo({ lat: cafe.lat, lng: cafe.lng });
-      map.setZoom(SELECTED_ZOOM);
+      const currZoom = map.getZoom()!;
+      if (currZoom < SELECTED_ZOOM) {
+        map.setZoom(SELECTED_ZOOM);
+      }
     }
   }
 
