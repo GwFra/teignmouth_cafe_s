@@ -1,4 +1,5 @@
 import { cookies, headers } from "next/headers";
+import type { NextResponse } from "next/server";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { SignJWT, jwtVerify } from "jose";
 
@@ -76,6 +77,21 @@ export async function createSession(userId: string): Promise<{
 
   const token = await signSessionToken({ sid: row.id, uid: userId });
   return { token, expiresAt };
+}
+
+/** Attach the session cookie for a token from createSession to a response. */
+export function setSessionCookie(
+  res: NextResponse,
+  token: string,
+  expiresAt: Date,
+): void {
+  res.cookies.set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    expires: expiresAt,
+  });
 }
 
 export interface AuthContext {

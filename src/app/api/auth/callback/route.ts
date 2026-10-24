@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { createSession, SESSION_COOKIE, isAdminEmail } from "@/lib/auth";
+import { createSession, isAdminEmail, setSessionCookie } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { getAppUrl, getGoogleProfile } from "@/lib/google";
@@ -59,13 +59,7 @@ export async function GET(req: NextRequest) {
   const dest = isAdminEmail(user.email) ? "/admin" : "/";
   const res = NextResponse.redirect(new URL(dest, getAppUrl()));
 
-  res.cookies.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    expires: expiresAt,
-  });
+  setSessionCookie(res, token, expiresAt);
   res.cookies.delete(STATE_COOKIE);
 
   return res;

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { LayoutDashboard, LogIn, LogOut } from "lucide-react";
+import { FlaskConical, LayoutDashboard, LogIn, LogOut } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,14 @@ interface HeaderUser {
   isAdmin: boolean;
 }
 
-export function SiteHeader({ user }: { user: HeaderUser | null }) {
+export function SiteHeader({
+  user,
+  devLogin = false,
+}: {
+  user: HeaderUser | null;
+  /** Show the local-only dev sign-in buttons (see lib/dev-login). */
+  devLogin?: boolean;
+}) {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
       <div className="container flex h-14 items-center justify-between gap-2">
@@ -54,12 +61,35 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
               </Button>
             </>
           ) : (
-            <Button asChild size="sm">
-              <a href="/api/auth/login">
-                <LogIn className="h-4 w-4" />
-                Sign in
-              </a>
-            </Button>
+            <>
+              {devLogin && (
+                <>
+                  <Button asChild variant="outline" size="sm">
+                    <a
+                      href="/api/auth/dev-login?as=admin"
+                      title="Sign in as an admin without Google (local dev only)"
+                    >
+                      <FlaskConical className="h-4 w-4" />
+                      Dev admin
+                    </a>
+                  </Button>
+                  <Button asChild variant="ghost" size="sm">
+                    <a
+                      href="/api/auth/dev-login?as=viewer"
+                      title="Sign in as a read-only user without Google (local dev only)"
+                    >
+                      Dev viewer
+                    </a>
+                  </Button>
+                </>
+              )}
+              <Button asChild size="sm">
+                <a href="/api/auth/login">
+                  <LogIn className="h-4 w-4" />
+                  Sign in
+                </a>
+              </Button>
+            </>
           )}
         </nav>
       </div>

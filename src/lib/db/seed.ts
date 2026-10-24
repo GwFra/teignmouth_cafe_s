@@ -5,10 +5,18 @@
  * replace them with real Teignmouth cafes (and real scores!) via the admin
  * dashboard once you're up and running.
  *
- * Run with:  npm run db:seed   (needs DATABASE_URL in the environment)
+ * Run with:  npm run db:seed   (reads DATABASE_URL from .env.local / .env)
  */
+import { loadEnvConfig } from "@next/env";
+
 import { db } from "./index";
 import { cafes, reviews } from "./schema";
+
+// tsx doesn't load .env files the way `next dev` does, so load them with
+// Next's own rules (development mode: .env.development* and .env.local over
+// .env). Variables already set in the shell still win. `db` only reads
+// DATABASE_URL on its first query, so loading here is early enough.
+loadEnvConfig(process.cwd(), true);
 
 const SAMPLE_CAFES = [
   {
