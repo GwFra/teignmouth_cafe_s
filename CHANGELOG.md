@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.3](https://github.com/GwFra/teignmouth_cafe_s/compare/teignmouth-flat-whites-0.3.2...teignmouth-flat-whites-0.3.3) (2026-10-24)
+
+
+### Bug Fixes
+
+* **map:** selected marker highlighted ([a426d9b](https://github.com/GwFra/teignmouth_cafe_s/commit/a426d9b151a71f3b81a895b99545fb6096546355))
+* **reviews:** handle zoom height when selected cafes bunched together ([354665d](https://github.com/GwFra/teignmouth_cafe_s/commit/354665d2eb5262cfa5f7f95ed2f81cb7b56028c3))
+
 ## [0.3.2](https://github.com/GwFra/teignmouth_cafe_s/compare/teignmouth-flat-whites-0.3.1...teignmouth-flat-whites-0.3.2) (2026-10-18)
 
 
