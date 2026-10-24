@@ -153,7 +153,7 @@ export function MapView({ cafes }: { cafes: CafeWithStats[] }) {
                 position={{ lat: cafe.lat as number, lng: cafe.lng as number }}
                 onClick={() => selectCafe(cafe)}
               >
-                <CostPin cafe={cafe} />
+                <CostPin cafe={cafe} selected={cafe.id === active} />
               </AdvancedMarker>
             ))}
           </MarkerClusterLayer>
@@ -342,7 +342,14 @@ const pinTones = {
 // Price-tag style pin showing the cafe's average flat white cost, coloured by
 // whether reviewers thought it was worth it. The tail's tip sits on the
 // cafe's location, since advanced markers anchor at their bottom centre.
-function CostPin({ cafe }: { cafe: CafeWithStats }) {
+// The selected pin is brightened as a whole so its tail still matches.
+function CostPin({
+  cafe,
+  selected,
+}: {
+  cafe: CafeWithStats;
+  selected: boolean;
+}) {
   const tone =
     cafe.worthIt === null
       ? pinTones.noReviews
@@ -351,7 +358,7 @@ function CostPin({ cafe }: { cafe: CafeWithStats }) {
         : pinTones.notWorthIt;
 
   return (
-    <div className={pinStyles.wrapper}>
+    <div className={cn(pinStyles.wrapper, selected && "brightness-150")}>
       <Badge variant={tone.variant} className={pinStyles.body}>
         {formatCost(cafe.avgCost)}
       </Badge>
