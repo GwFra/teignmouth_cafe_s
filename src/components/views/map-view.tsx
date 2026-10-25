@@ -22,6 +22,7 @@ import {
 } from "@googlemaps/markerclusterer";
 import { X } from "lucide-react";
 
+import { LatteBadge } from "@/components/latte-badge";
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -162,7 +163,9 @@ export function MapView({ cafes }: { cafes: CafeWithStats[] }) {
         {selectedCafe && (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3 md:inset-y-0 md:left-auto md:right-0 md:flex md:items-start md:p-4">
             <div className="pointer-events-auto w-full md:w-80">
+              {/* Keyed so the entrance replays when another cafe is picked. */}
               <CafeDetailCard
+                key={selectedCafe.id}
                 cafe={selectedCafe}
                 onClose={() => setActive(null)}
               />
@@ -413,24 +416,30 @@ function CafeDetailCard({
   onClose: () => void;
 }) {
   return (
-    <Card className="relative shadow-lg">
+    // overflow-hidden clips the cup while it starts out filling the card.
+    <Card className="relative overflow-hidden shadow-lg">
       <Button
         type="button"
         variant="ghost"
         size="icon"
-        className="absolute right-2 top-2 h-7 w-7"
+        className="absolute right-2 top-2 z-10 h-7 w-7"
         onClick={onClose}
       >
         <X className="h-4 w-4" />
         <span className="sr-only">Close cafe details</span>
       </Button>
 
-      <CardHeader className="space-y-1 p-4 pb-3 pr-12">
-        <CardTitle className="text-base leading-tight">{cafe.name}</CardTitle>
-        {cafe.address && <CardDescription>{cafe.address}</CardDescription>}
+      {/* The cup sits centred beside the name and address. It stays out of
+          .swirl-body, which is hidden while the cup plays. */}
+      <CardHeader className="flex-row items-center gap-3 space-y-0 p-4 pb-3 pr-12">
+        <LatteBadge className="h-10 w-10 shrink-0" />
+        <div className="swirl-body min-w-0 space-y-1">
+          <CardTitle className="text-base leading-tight">{cafe.name}</CardTitle>
+          {cafe.address && <CardDescription>{cafe.address}</CardDescription>}
+        </div>
       </CardHeader>
 
-      <CardContent className="p-4 pt-0">
+      <CardContent className="swirl-body p-4 pt-0">
         {cafe.reviewCount > 0 ? (
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <div>
