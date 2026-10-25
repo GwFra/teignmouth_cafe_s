@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/GwFra/teignmouth_cafe_s/compare/teignmouth-flat-whites-0.3.2...teignmouth-flat-whites-0.4.0) (2026-10-25)
+
+
+### Features
+
+* **reviews:** added animation for opening a review within the map ([5112926](https://github.com/GwFra/teignmouth_cafe_s/commit/5112926c9a12c6345fc2adbac6a2d141a3eb22b0))
+
+
+### Bug Fixes
+
+* **map:** selected marker highlighted ([a426d9b](https://github.com/GwFra/teignmouth_cafe_s/commit/a426d9b151a71f3b81a895b99545fb6096546355))
+* **reviews:** handle zoom height when selected cafes bunched together ([354665d](https://github.com/GwFra/teignmouth_cafe_s/commit/354665d2eb5262cfa5f7f95ed2f81cb7b56028c3))
+
 ## [0.3.2](https://github.com/GwFra/teignmouth_cafe_s/compare/teignmouth-flat-whites-0.3.1...teignmouth-flat-whites-0.3.2) (2026-10-18)
 
 
