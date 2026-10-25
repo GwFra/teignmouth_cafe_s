@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.2](https://github.com/GwFra/teignmouth_cafe_s/compare/teignmouth-flat-whites-0.3.1...teignmouth-flat-whites-0.3.2) (2026-10-18)
+
+
+### Bug Fixes
+
+* **reviews:** added filter pop-up on mobile ([aafbe67](https://github.com/GwFra/teignmouth_cafe_s/commit/aafbe671b02e378c15598c1d9cd27247b8e344ff))
+
+## [0.3.1](https://github.com/GwFra/teignmouth_cafe_s/compare/teignmouth-flat-whites-0.3.0...teignmouth-flat-whites-0.3.1) (2026-10-18)
+
+
+### Bug Fixes
+
+* **map:** updated map styling for dark/light and google styles ([ab85bf6](https://github.com/GwFra/teignmouth_cafe_s/commit/ab85bf6f430c64aaa20967f80db8e82f725fcc00))
+* **reviews:** fixed stale state and ease of adding review ([c679af2](https://github.com/GwFra/teignmouth_cafe_s/commit/c679af259a5bd451e2c6eefab0b1e6497d51748c))
+
 ## [0.3.0](https://github.com/GwFra/teignmouth_cafe_s/compare/teignmouth-flat-whites-0.2.0...teignmouth-flat-whites-0.3.0) (2026-10-08)
 
 
