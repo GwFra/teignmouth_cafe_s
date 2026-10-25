@@ -135,3 +135,103 @@
     color: var(--muted-foreground);
   }
 }
+
+/*
+ * Map detail card entrance (see LatteBadge): a cup of espresso fills the
+ * card, latte art draws itself, then the cup shrinks into a corner badge
+ * as the cafe details fade in. LatteBadge sets --dx / --dy / --s so the cup
+ * starts centred on the card.
+ */
+@layer components {
+  .swirl-latte {
+    --swirl-espresso: #3b2418;
+    --swirl-crema: var(--accent);
+    --swirl-milk: #faf6f0;
+
+    position: relative;
+    z-index: 2;
+    animation: swirl-latte-move 2.3s cubic-bezier(0.65, 0, 0.25, 1) both;
+  }
+
+  .swirl-latte svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .swirl-latte .cup {
+    fill: var(--swirl-espresso);
+  }
+
+  .swirl-latte .rim {
+    fill: none;
+    stroke: var(--swirl-crema);
+    stroke-width: 3;
+  }
+
+  .swirl-latte .art {
+    fill: none;
+    stroke: var(--swirl-milk);
+    stroke-width: 4.5;
+    stroke-linecap: round;
+    stroke-dasharray: 1; /* pairs with pathLength="1" on the path */
+    stroke-dashoffset: 0;
+    transform-origin: 50px 50px;
+    animation: swirl-art-draw 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.35s both;
+  }
+
+  .swirl-body {
+    animation: swirl-body-in 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 1.9s both;
+  }
+
+  /* Reduced motion: show the finished card straight away. */
+  @media (prefers-reduced-motion: reduce) {
+    .swirl-latte,
+    .swirl-latte .art,
+    .swirl-body {
+      animation: none;
+    }
+  }
+}
+
+/* Cup pops in at the centre, holds while the art draws, then glides and
+   shrinks into the corner. */
+@keyframes swirl-latte-move {
+  0% {
+    transform: translate(var(--dx, 0), var(--dy, 0)) scale(0);
+  }
+  14% {
+    transform: translate(var(--dx, 0), var(--dy, 0)) scale(var(--s, 1));
+  }
+  66% {
+    transform: translate(var(--dx, 0), var(--dy, 0)) scale(var(--s, 1));
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+/* Milk spiral draws itself while turning into place. */
+@keyframes swirl-art-draw {
+  from {
+    stroke-dashoffset: 1;
+    transform: rotate(-220deg);
+  }
+  to {
+    stroke-dashoffset: 0;
+    transform: rotate(0deg);
+  }
+}
+
+/* Details fade up once the cup has settled. */
+@keyframes swirl-body-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
