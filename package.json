@@ -62,7 +62,7 @@
     "eslint-config-next": "^15.5.25",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
-    "inquirer": "^9.3.8",
+    "inquirer": "^14.2.4",
     "postcss": "^8.5.31",
     "prettier": "^3.9.10",
     "tailwindcss": "^3.4.17",
