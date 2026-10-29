@@ -8,13 +8,13 @@
  */
 @layer base {
   :root {
-    --background: #faf6f0;              /* milk foam */
-    --surface: #f1e7da;                 /* steamed milk */
-    --foreground: #2b1d14;              /* espresso */
-    --primary: #6f4e37;                 /* roast brown */
+    --background: #faf6f0; /* milk foam */
+    --surface: #f1e7da; /* steamed milk */
+    --foreground: #2b1d14; /* espresso */
+    --primary: #6f4e37; /* roast brown */
     --primary-foreground: #faf6f0;
-    --accent: #c8a27a;                  /* crema — decorative only */
-    --highlight: #a63d40;               /* coffee cherry */
+    --accent: #c8a27a; /* crema — decorative only */
+    --highlight: #a63d40; /* coffee cherry */
     --highlight-foreground: #faf6f0;
 
     /* shadcn/ui tokens, derived from the palette above */
@@ -25,7 +25,7 @@
     --secondary: var(--surface);
     --secondary-foreground: var(--foreground);
     --muted: var(--surface);
-    --muted-foreground: #6b5a4c;        /* 4.5:1+ on surface */
+    --muted-foreground: #6b5a4c; /* 4.5:1+ on surface */
     --accent-foreground: var(--foreground);
     --destructive: var(--highlight);
     --destructive-foreground: var(--highlight-foreground);
@@ -51,8 +51,8 @@
     --highlight: #d9686b;
     --highlight-foreground: #1c1410;
 
-    --muted-foreground: #a8988a;        /* 4.5:1+ on surface */
-    --accent-foreground: #1c1410;       /* crema stays light, so text flips dark */
+    --muted-foreground: #a8988a; /* 4.5:1+ on surface */
+    --accent-foreground: #1c1410; /* crema stays light, so text flips dark */
     --border: #3d2e24;
     --input: #4d3b2f;
 
@@ -66,7 +66,9 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
   }
 }
 
@@ -175,7 +177,7 @@
     stroke: var(--swirl-milk);
     stroke-width: 4.5;
     stroke-linecap: round;
-    stroke-dasharray: 1; /* pairs with pathLength="1" on the path */
+    stroke-dasharray: 1 2;
     stroke-dashoffset: 0;
     transform-origin: 50px 50px;
     animation: swirl-art-draw 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.35s both;
