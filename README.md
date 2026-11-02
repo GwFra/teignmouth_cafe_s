@@ -7,8 +7,8 @@ Built with **Next.js (App Router)**, **Tailwind CSS**, **shadcn/ui**,
 **Drizzle ORM** on **Neon Postgres**, **Google Maps**, and Google sign-in using
 **Neon Auth** (managed Better Auth).
 
-> This is the initial outline of the application. A native mobile app is noted
-> as a future feature and is intentionally out of scope for now.
+> A native mobile app is planned as a future feature and is intentionally out of
+> scope for now.
 
 ---
 
@@ -27,13 +27,13 @@ Built with **Next.js (App Router)**, **Tailwind CSS**, **shadcn/ui**,
 
 Each review captures exactly what the brief asked for:
 
-| Field      | Stored as                     | Shown as        |
-| ---------- | ----------------------------- | --------------- |
-| `cafe`     | linked `cafes` row (name)     | cafe name       |
-| `type`     | enum `machine` \| `barista`   | Machine/Barista |
-| `worth it` | enum `yes` \| `no`            | Yes/No badge    |
-| `rating`   | numeric (0–5)                 | `4.5 / 5`       |
-| `cost`     | numeric (GBP)                 | `£3.40`         |
+| Field      | Stored as                   | Shown as        |
+| ---------- | --------------------------- | --------------- |
+| `cafe`     | linked `cafes` row (name)   | cafe name       |
+| `type`     | enum `machine` \| `barista` | Machine/Barista |
+| `worth it` | enum `yes` \| `no`          | Yes/No badge    |
+| `rating`   | numeric (0–5)               | `4.5 / 5`       |
+| `cost`     | numeric (GBP)               | `£3.40`         |
 
 Rating and cost are stored numerically so the list view can filter and sort on
 them; the UI formats cost with a `£` prefix. Location (address + lat/lng) lives
@@ -45,6 +45,8 @@ the map.
 ## Getting started
 
 ### 1. Install dependencies
+
+Requires Node 26 (pinned in `.nvmrc`, so `nvm use` picks it up).
 
 ```bash
 npm install
@@ -80,8 +82,15 @@ each Neon branch you sign in against.
 With `DEV_LOGIN="true"` and the local Docker database you can skip the Neon
 Auth variables and use the _Dev admin_ / _Dev viewer_ buttons instead.
 
-**Google Maps setup:** enable the *Maps JavaScript API* and create a browser key.
-Restrict it to your domain(s).
+**Google Maps setup:** enable both the _Maps JavaScript API_ and the _Places
+API_ on the project. The admin cafe dialog uses Places to look up addresses,
+and Places needs billing enabled on the project even within the free monthly
+quota. Create a browser key and restrict it to your domain(s) by HTTP referrer.
+
+The map's markers need a Map ID. If `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` is unset,
+the app uses its own (in `src/lib/maps-config.ts`). To style the map, link a
+Map Style to your Map ID in Cloud Console; the Maps JavaScript API can't take a
+style ID directly.
 
 ### 3. Create the database schema
 
@@ -132,6 +141,13 @@ npm run dev
 Open <http://localhost:3000> and sign in. To edit, give your user the `admin`
 role (see [Admin users](#admin-users)), then open `/admin`.
 
+To sign in without Google OAuth (for example against the local Docker
+database, or to see the read-only view), set `DEV_LOGIN="true"` in
+`.env.local`. The header then shows **Dev admin** and **Dev viewer** buttons.
+Dev admin signs in as the first `ADMIN_EMAILS` entry; Dev viewer signs in as a
+read-only placeholder user. This only works under `npm run dev`, so production
+builds ignore it.
+
 ---
 
 ## How authentication works
@@ -171,6 +187,7 @@ src/
   app/
     page.tsx                 # public: map + list explorer
     admin/page.tsx           # admin dashboard (guarded)
+    globals.css              # theme tokens (light/dark) + map card animation
     api/
       auth/[...path]/                 # Neon Auth proxy (OAuth, sessions)
       auth/dev-login/                 # local-only sign-in without Google
@@ -178,16 +195,28 @@ src/
       cafes/…                         # GET (public), POST/PATCH/DELETE (admin)
   components/
     ui/                      # shadcn/ui primitives
-    views/                   # map-view, list-view, explorer switcher
-    admin/                   # dashboard + review/cafe dialogs
+    views/                   # explorer switcher, map/list views, filter bar
+    admin/                   # dashboard, review/cafe dialogs, place autocomplete
+    latte-badge.tsx          # latte-art cup on the map detail card
+    review-type.tsx          # machine/barista label with tooltip
     site-header.tsx
+    theme-toggle.tsx         # system/light/dark selector
   lib/
     db/{schema,index,seed}.ts
     auth.ts                  # getAuth / requireAdmin
     neon-auth.ts             # Neon Auth server instance
     auth-client.ts           # Neon Auth browser client
     queries.ts               # shared read queries
-    validation.ts            # request validation
+    validation.ts            # API request validation
+    form-validation.ts       # zod helpers for the admin forms
+    review-filters.ts        # filter state shared by map + list views
+    client.ts                # fetch wrapper for admin mutations
+    format.ts                # cost / rating / type display helpers
+    maps-config.ts           # Teignmouth centre/bounds, Maps libraries
+    theme.ts, use-is-dark.ts # theme preference + resolved dark mode
+    types.ts                 # shapes shared by server and client
+scripts/
+  env-vars.mjs               # .env.example annotation lint + Vercel env sync
 ```
 
 ## Deploying
@@ -204,7 +233,7 @@ authorised redirect URIs.
 Versioning is handled by [release-please](https://github.com/googleapis/release-please).
 Conventional commits merged to `main` keep a release PR up to date; merging that
 PR bumps `package.json`, updates `CHANGELOG.md`, and tags a GitHub release
-(e.g. `0.3.0`).
+(e.g. `teignmouth-flat-whites-0.3.2`).
 
 Merging the release PR automatically deploys the new tag to Vercel production.
 The deploy needs these GitHub Actions settings:
@@ -243,7 +272,7 @@ neon branches restore <production-branch> <rollback-branch> \
 
 ## Roadmap
 
-- Native mobile app (future — not in this outline).
+- Native mobile app.
 - Photo uploads per review.
 - Public submission flow with moderation.
 
