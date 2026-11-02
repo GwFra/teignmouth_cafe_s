@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { FlaskConical, LayoutDashboard, LogIn, LogOut } from "lucide-react";
 
+import { SignInButton, SignOutButton } from "@/components/auth-buttons";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 
@@ -10,6 +11,7 @@ interface HeaderUser {
   email: string;
   image: string | null;
   isAdmin: boolean;
+  isDevSession: boolean;
 }
 
 export function SiteHeader({
@@ -53,18 +55,24 @@ export function SiteHeader({
                 {user.name ?? user.email}
                 {!user.isAdmin && " (read-only)"}
               </span>
-              <Button asChild variant="outline" size="sm">
-                <a href="/api/auth/logout">
-                  <LogOut className="h-4 w-4" />
-                  <span className="hidden sm:inline">Sign out</span>
-                </a>
-              </Button>
+              <SignOutButton
+                variant="outline"
+                size="sm"
+                devSession={user.isDevSession}
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Sign out</span>
+              </SignOutButton>
             </>
           ) : (
             <>
               {devLogin && (
                 <>
+                  {/* Full page loads: the dev-login route sets a cookie and
+                      redirects. The lint rule mistakes it for a page because
+                      of the api/auth/[...path] catch-all. */}
                   <Button asChild variant="outline" size="sm">
+                    {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                     <a
                       href="/api/auth/dev-login?as=admin"
                       title="Sign in as an admin without Google (local dev only)"
@@ -74,6 +82,7 @@ export function SiteHeader({
                     </a>
                   </Button>
                   <Button asChild variant="ghost" size="sm">
+                    {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                     <a
                       href="/api/auth/dev-login?as=viewer"
                       title="Sign in as a read-only user without Google (local dev only)"
@@ -83,12 +92,10 @@ export function SiteHeader({
                   </Button>
                 </>
               )}
-              <Button asChild size="sm">
-                <a href="/api/auth/login">
-                  <LogIn className="h-4 w-4" />
-                  Sign in
-                </a>
-              </Button>
+              <SignInButton size="sm">
+                <LogIn className="h-4 w-4" />
+                Sign in
+              </SignInButton>
             </>
           )}
         </nav>

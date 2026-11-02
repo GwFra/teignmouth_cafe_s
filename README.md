@@ -5,7 +5,7 @@ they rate, what they cost, and whether they were _worth it_.
 
 Built with **Next.js (App Router)**, **Tailwind CSS**, **shadcn/ui**,
 **Drizzle ORM** on **Neon Postgres**, **Google Maps**, and Google sign-in using
-a **JWT backed by a revocable database session**.
+**Neon Auth** (managed Better Auth).
 
 > This is the initial outline of the application. A native mobile app is noted
 > as a future feature and is intentionally out of scope for now.
@@ -18,11 +18,10 @@ a **JWT backed by a revocable database session**.
   average cost and the "worth it" rate.
 - **List view** — the raw review data in a sortable table, with filters on
   cafe, type (barista/machine), worth-it, minimum rating and maximum cost.
-- **Admin dashboard** — mobile-friendly CRUD for cafes and reviews, plus a
-  session manager to revoke sign-ins remotely. Changes show up immediately in
-  the map and list views.
-- **Auth** — Google OAuth. Only emails on an allowlist can edit; everyone else
-  can sign in but stays read-only.
+- **Admin dashboard** — mobile-friendly CRUD for cafes and reviews. Changes
+  show up immediately in the map and list views.
+- **Auth** — Google sign-in via Neon Auth. Only users with the `admin` role can
+  edit; everyone else can sign in but stays read-only.
 
 ## Data model
 
@@ -59,18 +58,27 @@ cp .env.example .env.local
 
 Fill in `.env.local`:
 
-| Variable                          | Where to get it                                                                 |
-| --------------------------------- | ------------------------------------------------------------------------------- |
-| `DATABASE_URL`                    | [Neon](https://neon.tech) → your project → pooled connection string             |
-| `AUTH_SECRET`                     | `openssl rand -base64 48`                                                        |
-| `GOOGLE_CLIENT_ID` / `_SECRET`    | [Google Cloud Console](https://console.cloud.google.com/apis/credentials)       |
-| `ADMIN_EMAILS`                    | Comma-separated Google emails allowed to edit                                   |
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Cloud → Maps JavaScript API key (restrict by HTTP referrer)              |
-| `APP_URL`                         | Base URL, e.g. `http://localhost:3000`                                          |
+| Variable                          | Where to get it                                                     |
+| --------------------------------- | ------------------------------------------------------------------- |
+| `DATABASE_URL`                    | [Neon](https://neon.tech) → your project → pooled connection string |
+| `NEON_AUTH_BASE_URL`              | Neon → your branch → Auth → Auth URL                                |
+| `NEON_AUTH_COOKIE_SECRET`         | `openssl rand -base64 32`                                           |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Cloud → Maps JavaScript API key (restrict by HTTP referrer)  |
+
+**Neon Auth setup:** in the Neon Console, enable Auth on the branch. Under
+Settings → Auth:
+
+- turn off email/password sign-in, so Google is the only way in;
+- add your app's origins (e.g. `http://localhost:3000`) as trusted domains;
+- add Google as an OAuth provider with your own client ID and secret. Neon's
+  shared development credentials work without this, but show Neon's branding.
 
 **Google OAuth setup:** create an OAuth 2.0 Client (type: Web application) and
-add `\${APP_URL}/api/auth/callback` (e.g. `http://localhost:3000/api/auth/callback`)
-as an authorised redirect URI.
+add `\${NEON_AUTH_BASE_URL}/callback/google` as an authorised redirect URI, for
+each Neon branch you sign in against.
+
+With `DEV_LOGIN="true"` and the local Docker database you can skip the Neon
+Auth variables and use the _Dev admin_ / _Dev viewer_ buttons instead.
 
 **Google Maps setup:** enable the *Maps JavaScript API* and create a browser key.
 Restrict it to your domain(s).
@@ -119,28 +127,38 @@ use `db:generate` (not just `db:push`) when changing `schema.ts`.
 npm run dev
 ```
 
-Open <http://localhost:3000>. Sign in, and if your email is in `ADMIN_EMAILS`
-you'll be taken to `/admin`.
+Open <http://localhost:3000> and sign in. To edit, give your user the `admin`
+role (see [Admin users](#admin-users)), then open `/admin`.
 
 ---
 
 ## How authentication works
 
-The brief asked for "a JWT that has DB session storage that can be revoked
-remotely", so:
+Sign-in uses [Neon Auth](https://neon.com/docs/auth/overview), Neon's managed
+[Better Auth](https://www.better-auth.com) service:
 
-1. On Google sign-in we create a row in the `sessions` table and issue a signed
-   **JWT** (via [`jose`](https://github.com/panva/jose)) whose payload carries
-   that session's id (`sid`). The JWT is stored in an `httpOnly` cookie.
-2. On **every** request, `getAuth()` verifies the JWT signature **and** looks
-   the session up in the database, rejecting it if the row is missing, expired
-   or has `revoked_at` set.
-3. **Revoking** a session (from the admin *Sessions* tab, or on sign-out) marks
-   the row revoked — the very next request from that device is signed out, even
-   though the JWT itself is still cryptographically valid.
+1. _Sign in_ calls Better Auth's Google sign-in from the browser. The OAuth
+   flow and callback run through `/api/auth/*`, which proxies to Neon Auth.
+2. Users, sessions and linked Google accounts are stored by Neon Auth in the
+   `neon_auth` schema of the same Neon branch. Drizzle doesn't manage that
+   schema.
+3. `getAuth()` reads the session with `auth.getSession()`. Session data is
+   cached in a signed cookie for up to 5 minutes between checks with Neon Auth.
+4. Sessions can be listed and revoked in the Neon Console.
 
-Admin rights are computed from `ADMIN_EMAILS` at request time, so changing the
-allowlist takes effect without anyone needing to sign in again.
+### Admin users
+
+Admins are users with the `admin` role in Neon Auth. Everyone else is
+read-only. A user has to sign in once before you can promote them, then either:
+
+- **Console:** Neon → your branch → Auth → Users → ⋯ → _Make admin_; or
+- **CLI:** `neon neon-auth user set-role <user-id> --roles admin`.
+
+Roles belong to the branch's auth data, so set them on the production branch.
+A change can take up to 5 minutes to apply to a signed-in user, because of the
+session cookie cache. The `admin` role also unlocks Better Auth's admin API
+(listing, banning and impersonating users, and setting roles), so only give it
+to people you trust with that.
 
 ---
 
@@ -152,10 +170,10 @@ src/
     page.tsx                 # public: map + list explorer
     admin/page.tsx           # admin dashboard (guarded)
     api/
-      auth/{login,callback,logout}/   # Google OAuth + session cookie
+      auth/[...path]/                 # Neon Auth proxy (OAuth, sessions)
+      auth/dev-login/                 # local-only sign-in without Google
       reviews/…                       # GET (public), POST/PATCH/DELETE (admin)
       cafes/…                         # GET (public), POST/PATCH/DELETE (admin)
-      sessions/…                      # GET + revoke (admin)
   components/
     ui/                      # shadcn/ui primitives
     views/                   # map-view, list-view, explorer switcher
@@ -163,8 +181,9 @@ src/
     site-header.tsx
   lib/
     db/{schema,index,seed}.ts
-    auth.ts                  # JWT + revocable session logic
-    google.ts                # OAuth helpers
+    auth.ts                  # getAuth / requireAdmin
+    neon-auth.ts             # Neon Auth server instance
+    auth-client.ts           # Neon Auth browser client
     queries.ts               # shared read queries
     validation.ts            # request validation
 ```
@@ -172,8 +191,11 @@ src/
 ## Deploying
 
 Works well on Vercel. Set the same environment variables in the project
-settings, point `APP_URL` at your production origin, and add the production
-`/api/auth/callback` URL to the Google OAuth client's authorised redirect URIs.
+settings, using the production branch's `NEON_AUTH_BASE_URL`. Add the
+production origin (and a wildcard for preview URLs if you use them) to Neon
+Auth's trusted domains, and the production branch's
+`${NEON_AUTH_BASE_URL}/callback/google` URL to the Google OAuth client's
+authorised redirect URIs.
 
 ### Releases
 
@@ -191,4 +213,7 @@ secrets.
 - Native mobile app (future — not in this outline).
 - Photo uploads per review.
 - Public submission flow with moderation.
+
+```
+
 ```

@@ -35,6 +35,7 @@ export default async function RootLayout({
                   email: auth.user.email,
                   image: auth.user.image,
                   isAdmin: auth.isAdmin,
+                  isDevSession: auth.isDevSession,
                 }
               : null
           }
