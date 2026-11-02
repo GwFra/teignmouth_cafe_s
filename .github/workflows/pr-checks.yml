@@ -27,5 +27,21 @@ jobs:
       - name: Check .env.example annotations
         run: npm run lint:env
 
+      # Fails if schema.ts has changed without a committed migration, or the
+      # migration files are inconsistent. Neither command connects to a
+      # database; drizzle.config.ts just needs a URL to load.
+      - name: Check migrations match the schema
+        timeout-minutes: 5
+        env:
+          DATABASE_URL: postgres://unused:unused@localhost:5432/unused
+        run: |
+          npx drizzle-kit check
+          npx drizzle-kit generate --name pr-check
+          if [ -n "$(git status --porcelain -- drizzle)" ]; then
+            git status --porcelain -- drizzle
+            echo "::error::src/lib/db/schema.ts has changes without a migration. Run npm run db:generate and commit drizzle/."
+            exit 1
+          fi
+
       - name: Build
         run: npm run build

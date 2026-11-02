@@ -86,9 +86,7 @@ Restrict it to your domain(s).
 ### 3. Create the database schema
 
 ```bash
-npm run db:push        # push the Drizzle schema to Neon
-# or, to keep migration files:
-npm run db:generate && npm run db:migrate
+npm run db:migrate     # apply the migrations in drizzle/ to DATABASE_URL
 ```
 
 Optionally load illustrative sample data (placeholder cafes — replace with real
@@ -118,8 +116,12 @@ The first start, with an empty data volume, applies the migrations in
 commands aren't needed. Data persists between restarts; `npm run db:reset`
 wipes the volume and re-seeds, and `npm run db:down` stops the containers.
 
-Schema changes only reach a fresh local database through migration files, so
-use `db:generate` (not just `db:push`) when changing `schema.ts`.
+### Changing the schema
+
+After editing `src/lib/db/schema.ts`, run `npm run db:generate` and commit the
+new files in `drizzle/` alongside it. PR checks fail if the schema has changed
+without a migration. Production is migrated by the deploy workflow, so don't
+run `db:push` or `db:migrate` against it by hand.
 
 ### 4. Run it
 
@@ -205,8 +207,39 @@ PR bumps `package.json`, updates `CHANGELOG.md`, and tags a GitHub release
 (e.g. `0.3.0`).
 
 Merging the release PR automatically deploys the new tag to Vercel production.
-The deploy needs the `VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID`
-secrets.
+The deploy needs these GitHub Actions settings:
+
+| Name                                                 | Kind     | Used for                           |
+| ---------------------------------------------------- | -------- | ---------------------------------- |
+| `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | secrets  | deploying to Vercel                |
+| `DATABASE_URL`                                       | secret   | running migrations on production   |
+| `NEON_API_KEY`                                       | secret   | creating the rollback branch       |
+| `NEON_PROJECT_ID`                                    | variable | creating the rollback branch       |
+| `NEON_PRODUCTION_BRANCH`                             | variable | the Neon branch production runs on |
+
+### Database migrations
+
+Each deploy, after the build and before going live:
+
+1. creates a Neon branch named `pre-<tag>-…` from production, as a rollback
+   point. It has no compute and expires after 14 days;
+2. runs `db:baseline`, which (once only) records the first migration as
+   applied on a database created with `db:push`;
+3. runs `db:migrate`.
+
+If a migration fails, the deploy stops and the previous release keeps serving.
+Because migrations run before the new code goes live, a migration that drops or
+renames something must ship in a later release than the code that stops using
+it.
+
+To roll back the database, restore production from the rollback branch. This
+also restores Neon Auth users and sessions to that point. The previous state is
+kept under the name you give:
+
+```bash
+neon branches restore <production-branch> <rollback-branch> \
+  --preserve-under-name <production-branch>-before-restore
+```
 
 ## Roadmap
 
