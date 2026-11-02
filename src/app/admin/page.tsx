@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LogIn, ShieldAlert } from "lucide-react";
 
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
+import { SignInButton } from "@/components/auth-buttons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAuth } from "@/lib/auth";
@@ -18,9 +19,7 @@ export default async function AdminPage() {
         title="Sign in required"
         body="Sign in with your Google account to manage reviews."
         action={
-          <Button asChild>
-            <a href="/api/auth/login">Sign in with Google</a>
-          </Button>
+          <SignInButton callbackPath="/admin">Sign in with Google</SignInButton>
         }
       />
     );
@@ -31,7 +30,7 @@ export default async function AdminPage() {
       <Gate
         icon={<ShieldAlert className="h-8 w-8 text-destructive" />}
         title="No edit access"
-        body={`You're signed in as ${auth.user.email}, but that account isn't on the admin allowlist. You can still browse the public views.`}
+        body={`You're signed in as ${auth.user.email}, but that account doesn't have the admin role. You can still browse the public views.`}
         action={
           <Button asChild variant="outline">
             <Link href="/">Back to reviews</Link>
@@ -46,8 +45,8 @@ export default async function AdminPage() {
       <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight">Admin dashboard</h1>
         <p className="text-muted-foreground">
-          Add and edit cafes, reviews and sign-in sessions. Changes appear on
-          the map and list views immediately.
+          Add and edit cafes and reviews. Changes appear on the map and list
+          views immediately.
         </p>
       </div>
       <AdminDashboard />
