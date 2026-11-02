@@ -75,46 +75,6 @@ export const reviews = pgTable(
 );
 
 // ---------------------------------------------------------------------------
-// Users — populated on first Google sign-in.
-// ---------------------------------------------------------------------------
-export const users = pgTable("users", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  email: text("email").notNull().unique(),
-  name: text("name"),
-  image: text("image"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-});
-
-// ---------------------------------------------------------------------------
-// Sessions — server-side record backing each JWT so it can be revoked. The JWT
-// carries the session id (`sid`); if the row is gone or `revokedAt` is set, the
-// token is rejected regardless of its signature still being valid.
-// ---------------------------------------------------------------------------
-export const sessions = pgTable(
-  "sessions",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    userAgent: text("user_agent"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    revokedAt: timestamp("revoked_at", { withTimezone: true }),
-  },
-  (t) => ({
-    userIdx: index("sessions_user_idx").on(t.userId),
-  }),
-);
-
-// ---------------------------------------------------------------------------
 // Relations
 // ---------------------------------------------------------------------------
 export const cafesRelations = relations(cafes, ({ many }) => ({
@@ -128,21 +88,8 @@ export const reviewsRelations = relations(reviews, ({ one }) => ({
   }),
 }));
 
-export const usersRelations = relations(users, ({ many }) => ({
-  sessions: many(sessions),
-}));
-
-export const sessionsRelations = relations(sessions, ({ one }) => ({
-  user: one(users, {
-    fields: [sessions.userId],
-    references: [users.id],
-  }),
-}));
-
 // Convenience type exports
 export type Cafe = typeof cafes.$inferSelect;
 export type NewCafe = typeof cafes.$inferInsert;
 export type Review = typeof reviews.$inferSelect;
 export type NewReview = typeof reviews.$inferInsert;
-export type User = typeof users.$inferSelect;
-export type Session = typeof sessions.$inferSelect;
