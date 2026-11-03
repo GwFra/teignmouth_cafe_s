@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 import {
   DEV_LOGIN_COOKIE,
-  getDevLoginUser,
   isDevLoginEnabled,
   type DevLoginRole,
 } from "@/lib/dev-login";
