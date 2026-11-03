@@ -39,6 +39,10 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
+      # drizzle-kit (a dev dependency) runs the migrations below.
+      - name: Install dependencies
+        run: npm ci
+
       - name: Install Vercel CLI
         run: npm install -g vercel
 
@@ -58,6 +62,36 @@ jobs:
 
       - name: Build
         run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      # A copy of production as it was before this release's migrations, to
+      # restore from if one goes wrong (see README → Deploying). It has no
+      # compute, so costs nothing while unused, and expires after 14 days.
+      - name: Create Neon rollback branch
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+          NEON_PRODUCTION_BRANCH: ${{ vars.NEON_PRODUCTION_BRANCH }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          NAME="pre-$TAG-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          npx --yes neonctl@8.16.0 branches create \
+            --project-id "$NEON_PROJECT_ID" \
+            --parent "$NEON_PRODUCTION_BRANCH" \
+            --name "$NAME" \
+            --no-compute \
+            --no-secrets \
+            --expires-at "$(date -u -d '+14 days' +%Y-%m-%dT%H:%M:%SZ)"
+          echo "Rollback branch: \`$NAME\` (expires in 14 days)" >> "$GITHUB_STEP_SUMMARY"
+
+      # Runs before Deploy so a failed migration stops the release while the
+      # previous version keeps serving. Drops and renames therefore need to
+      # ship a release after the code stops using what they remove.
+      - name: Run database migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          npm run db:baseline
+          npm run db:migrate
 
       - name: Deploy
         id: deploy

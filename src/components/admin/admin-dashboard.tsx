@@ -26,24 +26,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { apiSend } from "@/lib/client";
-import { formatCost, formatDate, formatRating } from "@/lib/format";
+import { formatCost, formatRating } from "@/lib/format";
 import type { CafeWithStats, ReviewRow } from "@/lib/types";
-
-interface SessionRow {
-  id: string;
-  email: string;
-  name: string | null;
-  userAgent: string | null;
-  createdAt: string;
-  lastSeenAt: string;
-  expiresAt: string;
-  revokedAt: string | null;
-}
 
 export function AdminDashboard() {
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
   const [cafes, setCafes] = useState<CafeWithStats[]>([]);
-  const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,14 +39,12 @@ export function AdminDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [r, c, s] = await Promise.all([
+      const [r, c] = await Promise.all([
         fetch("/api/reviews").then((res) => res.json()),
         fetch("/api/cafes").then((res) => res.json()),
-        fetch("/api/sessions").then((res) => res.json()),
       ]);
       setReviews(r);
       setCafes(c);
-      setSessions(Array.isArray(s) ? s : []);
     } catch {
       setError("Could not load data. Is the database configured?");
     } finally {
@@ -88,7 +74,6 @@ export function AdminDashboard() {
         <TabsList>
           <TabsTrigger value="reviews">Reviews</TabsTrigger>
           <TabsTrigger value="cafes">Cafes</TabsTrigger>
-          <TabsTrigger value="sessions">Sessions</TabsTrigger>
         </TabsList>
         <Button variant="ghost" size="sm" onClick={() => loadAll()}>
           <RefreshCw className="h-4 w-4" />
@@ -143,7 +128,9 @@ export function AdminDashboard() {
                     <TableCell>{formatCost(r.cost)}</TableCell>
                     <TableCell>
                       <Badge
-                        variant={r.worthIt === "yes" ? "success" : "destructive"}
+                        variant={
+                          r.worthIt === "yes" ? "success" : "destructive"
+                        }
                       >
                         {r.worthIt === "yes" ? "Yes" : "No"}
                       </Badge>
@@ -247,75 +234,6 @@ export function AdminDashboard() {
                     </TableCell>
                   </TableRow>
                 ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </TabsContent>
-
-      {/* ---------------- Sessions ---------------- */}
-      <TabsContent value="sessions" className="space-y-3">
-        <p className="text-sm text-muted-foreground">
-          Every sign-in creates a revocable session. Revoke one to sign that
-          device out immediately, even though its token has not expired.
-        </p>
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead className="hidden sm:table-cell">Last seen</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <EmptyRow cols={4} text="Loading…" />
-              ) : sessions.length === 0 ? (
-                <EmptyRow cols={4} text="No sessions." />
-              ) : (
-                sessions.map((s) => {
-                  const revoked = s.revokedAt != null;
-                  const expired = new Date(s.expiresAt) < new Date();
-                  return (
-                    <TableRow key={s.id}>
-                      <TableCell>
-                        <div className="font-medium">{s.name ?? s.email}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {s.email}
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell text-muted-foreground">
-                        {formatDate(s.lastSeenAt)}
-                      </TableCell>
-                      <TableCell>
-                        {revoked ? (
-                          <Badge variant="destructive">Revoked</Badge>
-                        ) : expired ? (
-                          <Badge variant="outline">Expired</Badge>
-                        ) : (
-                          <Badge variant="success">Active</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={revoked}
-                          onClick={() =>
-                            remove(
-                              `/api/sessions/${s.id}`,
-                              `Revoke this session for ${s.email}?`,
-                            )
-                          }
-                        >
-                          Revoke
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
               )}
             </TableBody>
           </Table>

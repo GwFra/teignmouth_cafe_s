@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
 
-import { createSession, setSessionCookie } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
 import {
-  getDevLoginUser,
+  DEV_LOGIN_COOKIE,
   isDevLoginEnabled,
   type DevLoginRole,
 } from "@/lib/dev-login";
-import { getAppUrl } from "@/lib/google";
 
 export const dynamic = "force-dynamic";
 
@@ -24,30 +19,23 @@ export async function GET(req: NextRequest) {
 
   const role: DevLoginRole =
     req.nextUrl.searchParams.get("as") === "viewer" ? "viewer" : "admin";
-  const devUser = getDevLoginUser(role);
-  if (!devUser) {
-    return new NextResponse(
-      "Dev admin login signs in as the first ADMIN_EMAILS entry; set ADMIN_EMAILS in .env.local.",
-      { status: 400 },
-    );
-  }
-
-  // Create the user if needed, but don't overwrite an existing (e.g. real
-  // Google-backed) user's name or avatar.
-  await db
-    .insert(users)
-    .values({ email: devUser.email, name: devUser.name })
-    .onConflictDoNothing({ target: users.email });
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, devUser.email))
-    .limit(1);
-
-  const { token, expiresAt } = await createSession(user.id);
 
   const dest = role === "admin" ? "/admin" : "/";
-  const res = NextResponse.redirect(new URL(dest, getAppUrl()));
-  setSessionCookie(res, token, expiresAt);
+  const res = NextResponse.redirect(new URL(dest, req.url));
+  res.cookies.set(DEV_LOGIN_COOKIE, role, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+  });
+  return res;
+}
+
+/** DELETE /api/auth/dev-login — signs out of a dev login session. */
+export async function DELETE() {
+  if (!isDevLoginEnabled()) {
+    return new NextResponse(null, { status: 404 });
+  }
+  const res = new NextResponse(null, { status: 204 });
+  res.cookies.delete(DEV_LOGIN_COOKIE);
   return res;
 }

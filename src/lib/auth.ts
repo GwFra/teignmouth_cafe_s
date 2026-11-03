@@ -1,145 +1,95 @@
-import { cookies, headers } from "next/headers";
-import type { NextResponse } from "next/server";
-import { and, eq, gt, isNull } from "drizzle-orm";
-import { SignJWT, jwtVerify } from "jose";
+import { cookies } from "next/headers";
 
-import { db } from "@/lib/db";
-import { sessions, users, type User } from "@/lib/db/schema";
-
-export const SESSION_COOKIE = "tfw_session";
-const SESSION_TTL_DAYS = 30;
-const SESSION_TTL_MS = SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
-
-function getSecret(): Uint8Array {
-  const secret = process.env.AUTH_SECRET;
-  if (!secret) {
-    throw new Error("AUTH_SECRET is not set. See .env.example.");
-  }
-  return new TextEncoder().encode(secret);
-}
-
-interface SessionClaims {
-  /** Session id — the primary key of the row in the `sessions` table. */
-  sid: string;
-  /** User id — convenience only; the DB row is the source of truth. */
-  uid: string;
-}
-
-/** Sign a session JWT that references a server-side session row. */
-export async function signSessionToken(claims: SessionClaims): Promise<string> {
-  return new SignJWT({ ...claims })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(`${SESSION_TTL_DAYS}d`)
-    .sign(getSecret());
-}
-
-async function verifySessionToken(token: string): Promise<SessionClaims | null> {
-  try {
-    const { payload } = await jwtVerify(token, getSecret());
-    if (typeof payload.sid === "string" && typeof payload.uid === "string") {
-      return { sid: payload.sid, uid: payload.uid };
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-/** Comma-separated allowlist of emails permitted to edit data. */
-export function isAdminEmail(email: string | null | undefined): boolean {
-  if (!email) return false;
-  const allow = (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  return allow.includes(email.toLowerCase());
-}
+import {
+  DEV_LOGIN_COOKIE,
+  getDevLoginUser,
+  isDevLoginEnabled,
+} from "@/lib/dev-login";
+import { getNeonAuth, isNeonAuthConfigured } from "@/lib/neon-auth";
 
 /**
- * Create a server-side session row and return the value to place in the JWT.
- * The token is signed by the caller so this stays free of cookie concerns.
+ * Admins are users given the `admin` role in Neon Auth (Console → Auth →
+ * Users → Make admin, or `neon neon-auth user set-role`). Better Auth stores
+ * multiple roles as a comma-separated string.
  */
-export async function createSession(userId: string): Promise<{
-  token: string;
-  expiresAt: Date;
-}> {
-  const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
-  const hdrs = await headers();
-  const [row] = await db
-    .insert(sessions)
-    .values({
-      userId,
-      userAgent: hdrs.get("user-agent")?.slice(0, 500) ?? null,
-      expiresAt,
-    })
-    .returning({ id: sessions.id });
-
-  const token = await signSessionToken({ sid: row.id, uid: userId });
-  return { token, expiresAt };
+function hasAdminRole(role: string | null | undefined): boolean {
+  if (!role) return false;
+  return role
+    .split(",")
+    .map((r) => r.trim())
+    .includes("admin");
 }
 
-/** Attach the session cookie for a token from createSession to a response. */
-export function setSessionCookie(
-  res: NextResponse,
-  token: string,
-  expiresAt: Date,
-): void {
-  res.cookies.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    expires: expiresAt,
-  });
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string | null;
+  image: string | null;
 }
 
 export interface AuthContext {
-  user: User;
-  sessionId: string;
+  user: AuthUser;
   isAdmin: boolean;
+  /** Signed in via the local-only dev login rather than Neon Auth. */
+  isDevSession: boolean;
 }
 
 /**
- * Resolve the current request's auth context. Returns null when there is no
- * valid, non-revoked, unexpired session. Because we re-check the DB on every
- * request, revoking a session row (or setting `revokedAt`) logs the user out
- * everywhere immediately, even though their JWT still verifies.
+ * Local-only: the dev login cookie just names a role. It's only honoured
+ * under `next dev` with DEV_LOGIN="true" (see lib/dev-login).
+ */
+function getDevAuth(
+  store: Awaited<ReturnType<typeof cookies>>,
+): AuthContext | null {
+  if (!isDevLoginEnabled()) return null;
+  const role = store.get(DEV_LOGIN_COOKIE)?.value;
+  if (role !== "admin" && role !== "viewer") return null;
+
+  const devUser = getDevLoginUser(role);
+  return {
+    user: {
+      id: `dev-${role}`,
+      email: devUser.email,
+      name: devUser.name,
+      image: null,
+    },
+    isAdmin: role === "admin",
+    isDevSession: true,
+  };
+}
+
+/**
+ * Resolve the current request's auth context from the Neon Auth session, or
+ * null when signed out. Session data is cached in a cookie for up to 5
+ * minutes, so a role change can take that long to apply.
  */
 export async function getAuth(): Promise<AuthContext | null> {
+  // Reading cookies first also opts callers (e.g. the root layout) into
+  // dynamic rendering, so nothing tries to reach Neon Auth at build time.
   const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
+  const dev = getDevAuth(store);
+  if (dev) return dev;
 
-  const claims = await verifySessionToken(token);
-  if (!claims) return null;
+  // Docker-only local dev can run without Neon Auth when dev login is on.
+  if (isDevLoginEnabled() && !isNeonAuthConfigured()) return null;
 
-  const [row] = await db
-    .select({ session: sessions, user: users })
-    .from(sessions)
-    .innerJoin(users, eq(sessions.userId, users.id))
-    .where(
-      and(
-        eq(sessions.id, claims.sid),
-        isNull(sessions.revokedAt),
-        gt(sessions.expiresAt, new Date()),
-      ),
-    )
-    .limit(1);
-
-  if (!row) return null;
-
-  // Best-effort "last seen" bump; ignore failures so reads never break auth.
-  void db
-    .update(sessions)
-    .set({ lastSeenAt: new Date() })
-    .where(eq(sessions.id, claims.sid))
-    .catch(() => undefined);
+  const { data, error } = await getNeonAuth().getSession();
+  if (error) {
+    console.error("Neon Auth getSession failed", error);
+    return null;
+  }
+  const user = data?.user;
+  if (!user) return null;
 
   return {
-    user: row.user,
-    sessionId: row.session.id,
-    isAdmin: isAdminEmail(row.user.email),
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name || null,
+      image: user.image ?? null,
+    },
+    isAdmin: hasAdminRole(user.role),
+    isDevSession: false,
   };
 }
 
@@ -155,12 +105,4 @@ export async function requireAdmin(): Promise<AuthContext> {
   if (!auth) throw new AuthError(401);
   if (!auth.isAdmin) throw new AuthError(403);
   return auth;
-}
-
-/** Revoke a single session (used by the admin dashboard and logout). */
-export async function revokeSession(sessionId: string): Promise<void> {
-  await db
-    .update(sessions)
-    .set({ revokedAt: new Date() })
-    .where(eq(sessions.id, sessionId));
 }
