@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.4.0](https://github.com/GwFra/teignmouth_cafe_s/compare/teignmouth-flat-whites-0.3.2...teignmouth-flat-whites-0.4.0) (2026-11-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* AUTH_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,APP_URL and ADMIN_EMAILS are replaced by NEON_AUTH_BASE_URL andNEON_AUTH_COOKIE_SECRET. Google OAuth is configured in Neon Auth, adminsneed the admin role on the Neon branch, and existing sessions are signedout.
+
+### Features
+
+* neon better auth integration ([#52](https://github.com/GwFra/teignmouth_cafe_s/issues/52)) ([11988ee](https://github.com/GwFra/teignmouth_cafe_s/commit/11988eede225412d137bda81fad0b65af11e59df))
+* **reviews:** added animation for opening a review within the map ([5112926](https://github.com/GwFra/teignmouth_cafe_s/commit/5112926c9a12c6345fc2adbac6a2d141a3eb22b0))
+
+
+### Bug Fixes
+
+* **map:** selected marker highlighted ([a426d9b](https://github.com/GwFra/teignmouth_cafe_s/commit/a426d9b151a71f3b81a895b99545fb6096546355))
+* **reviews:** corrected spiral animation to flow better ([1dc5b38](https://github.com/GwFra/teignmouth_cafe_s/commit/1dc5b385de954337e83ee2d62a8786055d699a8b))
+* **reviews:** handle zoom height when selected cafes bunched together ([354665d](https://github.com/GwFra/teignmouth_cafe_s/commit/354665d2eb5262cfa5f7f95ed2f81cb7b56028c3))
+
 ## [0.3.2](https://github.com/GwFra/teignmouth_cafe_s/compare/teignmouth-flat-whites-0.3.1...teignmouth-flat-whites-0.3.2) (2026-10-18)
 
 
