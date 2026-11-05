@@ -236,6 +236,9 @@ PR bumps `package.json`, updates `CHANGELOG.md`, and tags a GitHub release
 (e.g. `teignmouth-flat-whites-0.3.2`).
 
 Merging the release PR automatically deploys the new tag to Vercel production.
+To retry a failed deploy, or redeploy an earlier release, run **Deploy to
+Vercel** from the Actions tab with the release tag. Re-running the Release
+Please workflow won't redeploy, because the release already exists.
 The deploy needs these GitHub Actions settings:
 
 | Name                                                 | Kind     | Used for                           |
