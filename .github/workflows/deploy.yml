@@ -48,14 +48,14 @@ jobs:
 
       # Runs before `vercel pull` so the build sees the new variables. Values
       # come from repository secrets/variables named after each variable.
-      - name: Add new environment variables to Vercel
-        env:
-          TAG: ${{ inputs.tag }}
-          GH_SECRETS: ${{ toJSON(secrets) }}
-          GH_VARS: ${{ toJSON(vars) }}
-        run: |
-          BASE=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || true)
-          node scripts/env-vars.mjs sync --base "$BASE"
+      # - name: Add new environment variables to Vercel
+      #   env:
+      #     TAG: ${{ inputs.tag }}
+      #     GH_SECRETS: ${{ toJSON(secrets) }}
+      #     GH_VARS: ${{ toJSON(vars) }}
+      #   run: |
+      #     BASE=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || true)
+      #     node scripts/env-vars.mjs sync --base "$BASE"
 
       - name: Pull Vercel environment
         run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
