@@ -7,6 +7,15 @@ on:
         description: "Release tag to deploy"
         required: true
         type: string
+  # Manual (re)deploy of an existing release tag, e.g. to retry a failed
+  # deploy. Runs this file from the branch picked in the Actions UI, so a fix
+  # to the pipeline on main applies to an older tag without a new release.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to deploy (e.g. teignmouth-flat-whites-0.3.2)"
+        required: true
+        type: string
 
 concurrency:
   group: deploy-production
