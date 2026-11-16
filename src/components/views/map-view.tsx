@@ -238,6 +238,9 @@ function MarkerClusterLayer({ children }: { children: React.ReactNode }) {
       });
     };
 
+    // The registry wraps a clusterer that only exists once the map does, so
+    // it has to be published from this effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRegistry({
       add: (marker) => {
         clusterer.addMarker(marker, true);
@@ -301,6 +304,8 @@ function AdvancedMarker({
     });
     const handleClick = () => onClickRef.current();
     created.addEventListener("gmp-click", handleClick);
+    // See above: creating the marker during render would break under StrictMode.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMarker(created);
     return () => {
       created.removeEventListener("gmp-click", handleClick);
@@ -313,6 +318,9 @@ function AdvancedMarker({
   // the time the clusterer first sees it.
   useEffect(() => {
     if (!marker) return;
+    // `marker` is an imperative Maps object held in state only to trigger
+    // re-renders; updating its properties is how the Maps API is driven.
+    // eslint-disable-next-line react-hooks/immutability
     marker.position = { lat, lng };
     marker.title = title;
   }, [marker, lat, lng, title]);

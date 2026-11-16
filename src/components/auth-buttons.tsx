@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button, type ButtonProps } from "@/components/ui/button";
@@ -44,6 +45,7 @@ export function SignOutButton({
   children,
   ...props
 }: Omit<ButtonProps, "onClick" | "asChild"> & { devSession?: boolean }) {
+  const router = useRouter();
   const [pending, setPending] = useState(false);
 
   async function signOut() {
@@ -53,7 +55,10 @@ export function SignOutButton({
     } else {
       await authClient.signOut();
     }
-    window.location.assign("/");
+    // The session is only read on the server, so refreshing re-renders the
+    // header (and any protected page) as signed out.
+    router.push("/");
+    router.refresh();
   }
 
   return (
