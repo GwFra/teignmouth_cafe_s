@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import Image from "next/image";
 import { createPortal } from "react-dom";
 import {
   GoogleMap,
@@ -41,6 +42,7 @@ import {
 } from "@/lib/maps-config";
 import type { CafeWithStats } from "@/lib/types";
 import { useIsDark } from "@/lib/use-is-dark";
+import { useUserLocation, type UserLocation } from "@/lib/use-user-location";
 
 const containerStyle = { width: "100%", height: "100%" };
 
@@ -59,6 +61,7 @@ export function MapView({ cafes }: { cafes: CafeWithStats[] }) {
     zoom: number;
   } | null>(null);
   const isDark = useIsDark();
+  const userLocation = useUserLocation();
 
   const located = useMemo(
     () => cafes.filter((c) => c.lat !== null && c.lng !== null),
@@ -158,6 +161,7 @@ export function MapView({ cafes }: { cafes: CafeWithStats[] }) {
               </AdvancedMarker>
             ))}
           </MarkerClusterLayer>
+          {userLocation && <UserLocationMarker position={userLocation} />}
         </GoogleMap>
 
         {selectedCafe && (
@@ -332,6 +336,53 @@ function AdvancedMarker({
   }, [registry, marker]);
 
   return createPortal(children, content);
+}
+
+// The visitor's own position. Added straight to the map rather than through
+// MarkerClusterLayer, so it's never folded into an "N cafes" pin.
+function UserLocationMarker({ position }: { position: UserLocation }) {
+  const map = useGoogleMap();
+  const { lat, lng } = position;
+  const [content] = useState(() => document.createElement("div"));
+  const [marker, setMarker] =
+    useState<google.maps.marker.AdvancedMarkerElement | null>(null);
+
+  // Created in an effect for the same StrictMode reason as AdvancedMarker.
+  useEffect(() => {
+    if (!map) return;
+    const created = new google.maps.marker.AdvancedMarkerElement({
+      map,
+      content,
+      title: "Your location",
+    });
+    setMarker(created);
+    return () => {
+      created.map = null;
+      setMarker(null);
+    };
+  }, [map, content]);
+
+  useEffect(() => {
+    if (!marker) return;
+    marker.position = { lat, lng };
+  }, [marker, lat, lng]);
+
+  return createPortal(<LocationMascot />, content);
+}
+
+// Waving coffee cup standing on the visitor's position: advanced markers
+// anchor at their bottom centre, so its feet sit on the spot.
+function LocationMascot() {
+  return (
+    <Image
+      src="/pixel_cup.gif"
+      width={40}
+      height={50}
+      className="h-[50px] w-10 drop-shadow-md"
+      alt=""
+      aria-hidden
+    />
+  );
 }
 
 // Shared by CostPin (JSX) and the cluster renderer (plain DOM), so a cluster
