@@ -355,6 +355,7 @@ function UserLocationMarker({ position }: { position: UserLocation }) {
       content,
       title: "Your location",
     });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMarker(created);
     return () => {
       created.map = null;
@@ -364,6 +365,8 @@ function UserLocationMarker({ position }: { position: UserLocation }) {
 
   useEffect(() => {
     if (!marker) return;
+    // Imperative Maps object, as in AdvancedMarker.
+    // eslint-disable-next-line react-hooks/immutability
     marker.position = { lat, lng };
   }, [marker, lat, lng]);
 
