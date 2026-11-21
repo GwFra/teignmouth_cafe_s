@@ -35,26 +35,36 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Only sets state in promise callbacks, so the initial-load effect below
+  // doesn't trigger a synchronous re-render.
+  const fetchAll = useCallback(
+    () =>
+      Promise.all([
+        fetch("/api/reviews").then((res) => res.json()),
+        fetch("/api/cafes").then((res) => res.json()),
+      ])
+        .then(([r, c]) => {
+          setReviews(r);
+          setCafes(c);
+        })
+        .catch(() => {
+          setError("Could not load data. Is the database configured?");
+        })
+        .finally(() => {
+          setLoading(false);
+        }),
+    [],
+  );
+
   const loadAll = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
-      const [r, c] = await Promise.all([
-        fetch("/api/reviews").then((res) => res.json()),
-        fetch("/api/cafes").then((res) => res.json()),
-      ]);
-      setReviews(r);
-      setCafes(c);
-    } catch {
-      setError("Could not load data. Is the database configured?");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    await fetchAll();
+  }, [fetchAll]);
 
   useEffect(() => {
-    void loadAll();
-  }, [loadAll]);
+    void fetchAll();
+  }, [fetchAll]);
 
   async function remove(url: string, confirmMsg: string) {
     if (!window.confirm(confirmMsg)) return;
