@@ -30,7 +30,9 @@ export function PlaceAutocompleteField({
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const onPlaceSelectedRef = useRef(onPlaceSelected);
-  onPlaceSelectedRef.current = onPlaceSelected;
+  useEffect(() => {
+    onPlaceSelectedRef.current = onPlaceSelected;
+  }, [onPlaceSelected]);
 
   useEffect(() => {
     let cancelled = false;

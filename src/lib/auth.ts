@@ -88,7 +88,9 @@ export async function getAuth(): Promise<AuthContext | null> {
       name: user.name || null,
       image: user.image ?? null,
     },
-    isAdmin: hasAdminRole(user.role),
+    // Neon Auth still returns the admin plugin's `role` field, but the session
+    // user type from better-auth 1.7.25 no longer includes it.
+    isAdmin: hasAdminRole((user as { role?: string | null }).role),
     isDevSession: false,
   };
 }
