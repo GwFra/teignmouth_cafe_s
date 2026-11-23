@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/GwFra/teignmouth_cafe_s/compare/teignmouth-flat-whites-0.4.0...teignmouth-flat-whites-0.5.0) (2026-11-23)
+
+
+### Features
+
+* live location ([#61](https://github.com/GwFra/teignmouth_cafe_s/issues/61)) ([980669d](https://github.com/GwFra/teignmouth_cafe_s/commit/980669db1a82bce264cf5af43da67664787fa30e))
+
 ## [0.4.0](https://github.com/GwFra/teignmouth_cafe_s/compare/teignmouth-flat-whites-0.3.2...teignmouth-flat-whites-0.4.0) (2026-11-03)
 
 
